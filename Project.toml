@@ -1,0 +1,16 @@
+name = "JuliaSyntaxHighlighting"
+uuid = "dc6e5ff7-fb65-4e79-a425-ec3bc9c03011"
+authors = ["TEC <git@tecosaur.net>"]
+version = "1.11.0"
+
+[deps]
+StyledStrings = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
+
+[compat]
+julia = "1.11"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
