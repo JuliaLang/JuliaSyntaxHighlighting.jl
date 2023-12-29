@@ -149,6 +149,22 @@ end
 Apply syntax highlighting to `content` using `JuliaSyntax`.
 
 Returns an `AnnotatedString{String}`.
+
+# Examples
+
+```jldoctest
+julia> JuliaSyntaxHighlighting.highlight("sum(1:8)")
+"sum(1:8)"
+
+julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
+6-element Vector{Tuple{UnitRange{Int64}, Pair{Symbol, Any}}}:
+ (1:3, :face => :julia_funcall)
+ (4:4, :face => :julia_rainbow_paren_1)
+ (5:5, :face => :julia_number)
+ (6:6, :face => :julia_operator)
+ (7:7, :face => :julia_number)
+ (8:8, :face => :julia_rainbow_paren_1)
+```
 """
 highlight(str::AbstractString) =
     AnnotatedString(str, _hl_annotations(str, tokenize(str)))
@@ -167,6 +183,25 @@ highlight(buf::IOContext{IOBuffer}) = highlight(buf.io)
     highlight!(content::Union{AnnotatedString, SubString{AnnotatedString}})
 
 Modify `content` by applying syntax highlighting using `JuliaSyntax`.
+
+# Examples
+
+```jldoctest
+julia> str = Base.AnnotatedString("sum(1:8)")
+"sum(1:8)"
+
+julia> JuliaSyntaxHighlighting.highlight!(str)
+"sum(1:8)"
+
+julia> Base.annotations(str)
+6-element Vector{Tuple{UnitRange{Int64}, Pair{Symbol, Any}}}:
+ (1:3, :face => :julia_funcall)
+ (4:4, :face => :julia_rainbow_paren_1)
+ (5:5, :face => :julia_number)
+ (6:6, :face => :julia_operator)
+ (7:7, :face => :julia_number)
+ (8:8, :face => :julia_rainbow_paren_1)
+```
 """
 function highlight!(str::AnnotatedString)
     for (range, annot) in _hl_annotations(str.string, tokenize(str.string))
