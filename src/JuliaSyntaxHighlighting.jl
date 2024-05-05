@@ -1,8 +1,7 @@
 module JuliaSyntaxHighlighting
 
 import Base: JuliaSyntax, AnnotatedString, annotate!
-import Base.JuliaSyntax: var"@K_str", Kind, Tokenize, tokenize
-import .Tokenize: kind, untokenize
+import Base.JuliaSyntax: var"@K_str", Kind, GreenNode, parseall, kind, flags
 using StyledStrings: Face, addface!
 
 public highlight, highlight!
@@ -59,96 +58,148 @@ const HIGHLIGHT_FACES = [
 
 __init__() = foreach(addface!, HIGHLIGHT_FACES)
 
-function _hl_annotations(content::AbstractString, tokens)
-    highlighted = Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}}()
-    lastk, last2k = K"None", K"None"
-    lastf, last2f = :none, :none
-    function paren_type(k)
-        if     k == K"(";  1, :paren
-        elseif k == K")"; -1, :paren
-        elseif k == K"[";  1, :bracket
-        elseif k == K"]"; -1, :bracket
-        elseif k == K"{";  1, :curly
-        elseif k == K"}"; -1, :curly
-        else               0, :none
+function paren_type(k::Kind)
+    if     k == K"(";  1, :paren
+    elseif k == K")"; -1, :paren
+    elseif k == K"[";  1, :bracket
+    elseif k == K"]"; -1, :bracket
+    elseif k == K"{";  1, :curly
+    elseif k == K"}"; -1, :curly
+    else               0, :none
+    end
+end
+
+struct ParenDepthCounter
+    paren::Ref{UInt}
+    bracket::Ref{UInt}
+    curly::Ref{UInt}
+end
+
+ParenDepthCounter() =
+    ParenDepthCounter(Ref(zero(UInt)), Ref(zero(UInt)), Ref(zero(UInt)))
+
+struct GreenLineage
+    node::GreenNode
+    parent::Union{Nothing, GreenLineage}
+end
+
+struct HighlightContext{S <: AbstractString}
+    content::S
+    offset::Int
+    lnode::GreenNode
+    llnode::GreenNode
+    pdepths::ParenDepthCounter
+end
+
+function _hl_annotations(content::AbstractString, ast::GreenNode)
+    highlights = Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}}()
+    ctx = HighlightContext(content, 0, ast, ast, ParenDepthCounter())
+    _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx)
+    highlights
+end
+
+function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}},
+                          lineage::GreenLineage, ctx::HighlightContext)
+    (; node, parent) = lineage
+    (; content, offset, lnode, llnode, pdepths) = ctx
+    region = firstindex(content)+offset:node.span+offset
+    nkind = node.head.kind
+    pnode = if !isnothing(parent) parent.node end
+    pkind = if !isnothing(parent) kind(parent.node) end
+    face = if nkind == K"Identifier"
+        if pkind == K"::" && JuliaSyntax.is_trivia(pnode)
+            :julia_type
+        elseif pkind == K"curly" && kind(lnode) == K"curly" && !isnothing(parent.parent) && kind(parent.parent.node) == K"call"
+            :julia_identifier
+        elseif pkind == K"curly"
+            :julia_type
+        elseif pkind == K"braces" && lnode != pnode
+            :julia_type
+        elseif kind(lnode) == K"::" && JuliaSyntax.is_trivia(lnode)
+            :julia_type
+        elseif kind(lnode) == K":" && !JuliaSyntax.is_number(llnode) &&
+            kind(llnode) ∉ (K"Identifier", K")", K"]", K"end", K"'")
+            highlights[end] = (highlights[end][1], :face => :julia_symbol)
+            :julia_symbol
+        elseif view(content, region) in SINGLETON_IDENTIFIERS
+            :julia_singleton_identifier
+        elseif view(content, region) == "NaN"
+            :julia_number
+        else
+            :julia_identifier
+        end
+    elseif nkind == K"@"; :julia_macro
+    elseif nkind == K"MacroName"; :julia_macro
+    elseif nkind == K"StringMacroName"; :julia_macro
+    elseif nkind == K"CmdMacroName"; :julia_macro
+    elseif nkind == K"::"; :julia_type
+    elseif nkind == K"Comment"; :julia_comment
+    elseif nkind == K"String"; :julia_string
+    elseif JuliaSyntax.is_string_delim(node); :julia_string_delim
+    elseif nkind == K"CmdString"; :julia_cmdstring
+    elseif nkind == K"`" || nkind == K"```"; :julia_cmdstring
+    elseif nkind == K"Char"
+        kind(lnode) == K"'" && !isempty(highlights) &&
+            (highlights[end] = (highlights[end][1], :face => :julia_char_delim))
+        :julia_char
+    elseif nkind == K"'" && kind(lnode) == K"Char"; :julia_char_delim
+    elseif nkind == K"true" || nkind == K"false"; :julia_bool
+    elseif JuliaSyntax.is_number(nkind); :julia_number
+    elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
+        :julia_assignment
+    elseif JuliaSyntax.is_word_operator(nkind) && JuliaSyntax.is_trivia(node);
+        :julia_assignment
+    elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
+        :julia_assignment
+    elseif JuliaSyntax.is_prec_comparison(nkind); :julia_comparator
+    elseif JuliaSyntax.is_operator(nkind) && !JuliaSyntax.is_prec_assignment(nkind) &&
+        !JuliaSyntax.is_word_operator(nkind) && nkind != K"." &&
+        (JuliaSyntax.is_trivia(node) || iszero(flags(node)));
+        :julia_operator
+    elseif JuliaSyntax.is_keyword(nkind) && JuliaSyntax.is_trivia(node); :julia_keyword
+    elseif JuliaSyntax.is_error(nkind); :julia_error
+    elseif ((depthchange, ptype) = paren_type(nkind)) |> last != :none
+        if nkind == K"(" && !isempty(highlights) && kind(lnode) == K"Identifier" && last(last(highlights[end])) == :julia_identifier
+            highlights[end] = (highlights[end][1], :face => :julia_funcall)
+        end
+        depthref = getfield(pdepths, ptype)[]
+        pdepth = if depthchange > 0
+            getfield(pdepths, ptype)[] += depthchange
+        else
+            depth0 = getfield(pdepths, ptype)[]
+            getfield(pdepths, ptype)[] += depthchange
+            depth0
+        end
+        if pdepth <= 0 && UNMATCHED_DELIMITERS_ENABLED[]
+            :julia_unpaired_parenthetical
+        elseif !RAINBOW_DELIMITERS_ENABLED[]
+            :julia_parenthetical
+        else
+            displaydepth = mod1(pdepth, MAX_PAREN_HIGHLIGHT_DEPTH)
+            Symbol("julia_rainbow_$(ptype)_$(displaydepth)")
         end
     end
-    depthcounters = (paren = Ref(0), bracket = Ref(0), curly = Ref(0))
-    for (; head::JuliaSyntax.SyntaxHead, range::UnitRange{UInt32}) in tokens
-        range = first(range):thisind(content, last(range))
-        kind = head.kind
-        face = if kind == K"Identifier"
-            if lastk == K":" && !JuliaSyntax.is_number(last2k) &&
-                last2k ∉ (K"Identifier", K")", K"]", K"end", K"'")
-                highlighted[end] = (highlighted[end][1], :face => :julia_symbol)
-                :julia_symbol
-            elseif lastk == K"::"
-                :julia_type
-            elseif lastk ∈ (K".", K"{") && last2f == :julia_type
-                :julia_type
-            elseif view(content, range) in SINGLETON_IDENTIFIERS
-                :julia_singleton_identifier
-            elseif view(content, range) == "NaN"
-                :julia_number
-            else
-                :julia_identifier
-            end
-        elseif kind == K"@"; :julia_macro
-        elseif kind == K"MacroName"; :julia_macro
-        elseif kind == K"StringMacroName"; :julia_macro
-        elseif kind == K"CmdMacroName"; :julia_macro
-        elseif kind == K"::"; :julia_type
-        elseif kind == K"Comment"; :julia_comment
-        elseif kind == K"String"; :julia_string
-        elseif JuliaSyntax.is_string_delim(kind); :julia_string_delim
-        elseif kind == K"CmdString"; :julia_cmdstring
-        elseif kind == K"`" || kind == K"```"; :julia_cmdstring
-        elseif kind == K"Char"
-            lastk == K"'" &&
-                (highlighted[end] = (highlighted[end][1], :face => :julia_char_delim))
-            :julia_char
-        elseif kind == K"'" && lastk == K"Char"; :julia_char_delim
-        elseif kind == K"true" || kind == K"false"; :julia_bool
-        elseif JuliaSyntax.is_number(kind); :julia_number
-        elseif JuliaSyntax.is_prec_assignment(kind); :julia_assignment
-        elseif JuliaSyntax.is_prec_comparison(kind); :julia_comparator
-        elseif JuliaSyntax.is_operator(kind); :julia_operator
-        elseif JuliaSyntax.is_keyword(kind); :julia_keyword
-        elseif JuliaSyntax.is_error(kind); :julia_error
-        elseif ((depthchange, ptype) = paren_type(kind)) |> last != :none
-            if kind == K"(" && lastk == K"Identifier"
-                highlighted[end] = (highlighted[end][1], :face => :julia_funcall)
-            end
-            depthref = getfield(depthcounters, ptype)[]
-            pdepth = if depthchange > 0
-                getfield(depthcounters, ptype)[] += depthchange
-            else
-                depth0 = getfield(depthcounters, ptype)[]
-                getfield(depthcounters, ptype)[] += depthchange
-                depth0
-            end
-            if pdepth <= 0 && UNMATCHED_DELIMITERS_ENABLED[]
-                :julia_unpaired_parenthetical
-            elseif !RAINBOW_DELIMITERS_ENABLED[]
-                :julia_parenthetical
-            else
-                displaydepth = mod1(pdepth, MAX_PAREN_HIGHLIGHT_DEPTH)
-                Symbol("julia_rainbow_$(ptype)_$(displaydepth)")
-            end
-        end
-        isnothing(face) || push!(highlighted, (range, :face => face))
-        last2k, lastk = lastk, kind
-        last2f, lastf = lastf, face
+    !isnothing(face) &&
+        push!(highlights, (region, :face => face))
+    isempty(node.args) && return
+    llnode, lnode = node, node
+    for child in node.args
+        cctx = HighlightContext(content, offset, lnode, llnode, pdepths)
+        _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
+        llnode, lnode = lnode, child
+        offset += child.span
     end
-    highlighted
 end
 
 """
-    highlight(content::Union{AbstractString, IOBuffer, IOContext{IOBuffer}})
+    highlight(content::Union{AbstractString, IO},
+              ast::JuliaSyntax.GreenNode = <parsed content>) -> AnnotatedString{String}
 
 Apply syntax highlighting to `content` using `JuliaSyntax`.
 
-Returns an `AnnotatedString{String}`.
+By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
+`ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
+pre-generated `ast`.
 
 # Examples
 
@@ -166,23 +217,28 @@ julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
  (8:8, :face => :julia_rainbow_paren_1)
 ```
 """
+function highlight end
+
 highlight(str::AbstractString) =
-    AnnotatedString(str, _hl_annotations(str, tokenize(str)))
+    highlight(str, parseall(GreenNode, str, ignore_errors=true))
 
-function highlight(buf::IOBuffer)
-    pos = position(buf)
-    eof(buf) && seekstart(buf)
-    str = read(buf, String)
-    seek(buf, pos)
-    highlight(str)
-end
+highlight(io::IO) = highlight(read(io, String))
 
-highlight(buf::IOContext{IOBuffer}) = highlight(buf.io)
+highlight(io::IO, ast::GreenNode) =
+    highlight(read(io, String), ast)
+
+highlight(str::AbstractString, ast::GreenNode) =
+    AnnotatedString(str, _hl_annotations(str, ast))
 
 """
-    highlight!(content::Union{AnnotatedString, SubString{AnnotatedString}})
+    highlight!(content::Union{AnnotatedString, SubString{AnnotatedString}},
+               ast::JuliaSyntax.GreenNode = <parsed content>)
 
 Modify `content` by applying syntax highlighting using `JuliaSyntax`.
+
+By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
+`ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
+pre-generated `ast`.
 
 # Examples
 
@@ -204,7 +260,7 @@ julia> Base.annotations(str)
 ```
 """
 function highlight!(str::AnnotatedString)
-    for (range, annot) in _hl_annotations(str.string, tokenize(str.string))
+    for (range, annot) in _hl_annotations(str.string, parseall(GreenNode, str.string, ignore_errors=true))
         annotate!(str, range, annot)
     end
     str
@@ -212,7 +268,7 @@ end
 
 function highlight!(str::SubString{AnnotatedString{S}}) where {S}
     plainstr = SubString{S}(str.string.string, str.offset, str.ncodeunits, Val(:noshift))
-    for (range, annot) in _hl_annotations(plainstr, tokenize(plainstr))
+    for (range, annot) in _hl_annotations(plainstr, parseall(GreenNode, plainstr, ignore_errors=true))
         annotate!(str, range, annot)
     end
     str
