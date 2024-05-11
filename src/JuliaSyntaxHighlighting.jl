@@ -1,7 +1,7 @@
 module JuliaSyntaxHighlighting
 
 import Base: JuliaSyntax, AnnotatedString, annotate!
-import Base.JuliaSyntax: var"@K_str", Kind, GreenNode, parseall, kind, flags
+import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags
 using StyledStrings: Face, addface!
 
 public highlight, highlight!
@@ -10,46 +10,57 @@ const MAX_PAREN_HIGHLIGHT_DEPTH = 6
 const RAINBOW_DELIMITERS_ENABLED = Ref(true)
 const UNMATCHED_DELIMITERS_ENABLED = Ref(true)
 
-const SINGLETON_IDENTIFIERS = ("nothing", "missing")
+const SINGLETON_IDENTIFIERS = (:nothing, :missing)
+
+const BASE_TYPE_IDENTIFIERS =
+    Set([n for n in names(Base, imported=true) if getglobal(Base, n) isa Type]) ∪
+    Set([n for n in names(Core, imported=true) if getglobal(Core, n) isa Type])
+
+const BUILTIN_FUNCTIONS =
+    Set([n for n in names(Core) if getglobal(Base, n) isa Core.Builtin])
 
 const HIGHLIGHT_FACES = [
     # Julia syntax highlighting faces
-    :julia_identifier => Face(foreground=:bright_white),
-    :julia_singleton_identifier => Face(inherit=:julia_symbol),
     :julia_macro => Face(foreground=:magenta),
     :julia_symbol => Face(foreground=:magenta),
+    :julia_singleton_identifier => Face(inherit=:julia_symbol),
     :julia_type => Face(foreground=:yellow),
+    :julia_typedec => Face(foreground=:bright_blue),
     :julia_comment => Face(foreground=:grey),
     :julia_string => Face(foreground=:green),
+    :julia_regex => Face(inherit=:julia_string),
+    :julia_backslash_literal => Face(foreground=:magenta, inherit=:julia_string),
     :julia_string_delim => Face(foreground=:bright_green),
     :julia_cmdstring => Face(inherit=:julia_string),
     :julia_char => Face(inherit=:julia_string),
     :julia_char_delim => Face(inherit=:julia_string_delim),
-    :julia_number => Face(foreground=:bright_red),
-    :julia_bool => Face(foreground=:bright_red),
+    :julia_number => Face(foreground=:bright_magenta),
+    :julia_bool => Face(inherit=:julia_number),
     :julia_funcall => Face(foreground=:cyan),
-    :julia_operator => Face(foreground=:cyan),
-    :julia_comparator => Face(foreground=:yellow),
-    :julia_assignment => Face(foreground=:bright_blue),
+    :julia_broadcast => Face(foreground=:bright_blue, weight=:bold),
+    :julia_builtin => Face(foreground=:bright_blue),
+    :julia_operator => Face(foreground=:blue),
+    :julia_comparator => Face(inherit = :julia_operator),
+    :julia_assignment => Face(foreground=:bright_red),
     :julia_keyword => Face(foreground=:red),
-    :julia_error => Face(background=:red),
     :julia_parenthetical => Face(),
-    :julia_unpaired_parenthetical => Face(inherit=:julia_error),
+    :julia_unpaired_parenthetical => Face(inherit=[:julia_error, :julia_parenthetical]),
+    :julia_error => Face(background=:red),
     # Rainbow delimitors (1-6, (), [], and {})
-    :julia_rainbow_paren_1 => Face(foreground=:bright_green),
-    :julia_rainbow_paren_2 => Face(foreground=:bright_blue),
-    :julia_rainbow_paren_3 => Face(foreground=:bright_red),
+    :julia_rainbow_paren_1 => Face(foreground=:bright_green, inherit=:julia_parenthetical),
+    :julia_rainbow_paren_2 => Face(foreground=:bright_blue, inherit=:julia_parenthetical),
+    :julia_rainbow_paren_3 => Face(foreground=:bright_red, inherit=:julia_parenthetical),
     :julia_rainbow_paren_4 => Face(inherit=:julia_rainbow_paren_1),
     :julia_rainbow_paren_5 => Face(inherit=:julia_rainbow_paren_2),
     :julia_rainbow_paren_6 => Face(inherit=:julia_rainbow_paren_3),
-    :julia_rainbow_bracket_1 => Face(foreground=:blue),
-    :julia_rainbow_bracket_2 => Face(foreground=:bright_magenta),
+    :julia_rainbow_bracket_1 => Face(foreground=:blue, inherit=:julia_parenthetical),
+    :julia_rainbow_bracket_2 => Face(foreground=:bright_magenta, inherit=:julia_parenthetical),
     :julia_rainbow_bracket_3 => Face(inherit=:julia_rainbow_bracket_1),
     :julia_rainbow_bracket_4 => Face(inherit=:julia_rainbow_bracket_2),
     :julia_rainbow_bracket_5 => Face(inherit=:julia_rainbow_bracket_1),
     :julia_rainbow_bracket_6 => Face(inherit=:julia_rainbow_bracket_2),
-    :julia_rainbow_curly_1 => Face(foreground=:bright_yellow),
-    :julia_rainbow_curly_2 => Face(foreground=:yellow),
+    :julia_rainbow_curly_1 => Face(foreground=:bright_yellow, inherit=:julia_parenthetical),
+    :julia_rainbow_curly_2 => Face(foreground=:yellow, inherit=:julia_parenthetical),
     :julia_rainbow_curly_3 => Face(inherit=:julia_rainbow_curly_1),
     :julia_rainbow_curly_4 => Face(inherit=:julia_rainbow_curly_2),
     :julia_rainbow_curly_5 => Face(inherit=:julia_rainbow_curly_1),
@@ -87,13 +98,12 @@ struct HighlightContext{S <: AbstractString}
     content::S
     offset::Int
     lnode::GreenNode
-    llnode::GreenNode
     pdepths::ParenDepthCounter
 end
 
 function _hl_annotations(content::AbstractString, ast::GreenNode)
     highlights = Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}}()
-    ctx = HighlightContext(content, 0, ast, ast, ParenDepthCounter())
+    ctx = HighlightContext(content, 0, ast, ParenDepthCounter())
     _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx)
     highlights
 end
@@ -101,38 +111,55 @@ end
 function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}},
                           lineage::GreenLineage, ctx::HighlightContext)
     (; node, parent) = lineage
-    (; content, offset, lnode, llnode, pdepths) = ctx
+    (; content, offset, lnode, pdepths) = ctx
     region = firstindex(content)+offset:node.span+offset
     nkind = node.head.kind
     pnode = if !isnothing(parent) parent.node end
     pkind = if !isnothing(parent) kind(parent.node) end
+    ppkind = if !isnothing(parent) && !isnothing(parent.parent)
+        kind(parent.parent.node) end
+    isplainoperator(node) =
+        JuliaSyntax.is_operator(node) &&
+        !JuliaSyntax.is_trivia(node) &&
+        !JuliaSyntax.is_prec_assignment(node) &&
+        !JuliaSyntax.is_word_operator(node) &&
+        nkind != K"." && nkind != K"..." &&
+        (JuliaSyntax.is_trivia(node) || !JuliaSyntax.haschildren(node))
     face = if nkind == K"Identifier"
-        if pkind == K"::" && JuliaSyntax.is_trivia(pnode)
+        if pkind == K"curly"
             :julia_type
-        elseif pkind == K"curly" && kind(lnode) == K"curly" && !isnothing(parent.parent) && kind(parent.parent.node) == K"call"
-            :julia_identifier
-        elseif pkind == K"curly"
-            :julia_type
-        elseif pkind == K"braces" && lnode != pnode
-            :julia_type
-        elseif kind(lnode) == K"::" && JuliaSyntax.is_trivia(lnode)
-            :julia_type
-        elseif kind(lnode) == K":" && !JuliaSyntax.is_number(llnode) &&
-            kind(llnode) ∉ (K"Identifier", K")", K"]", K"end", K"'")
-            highlights[end] = (highlights[end][1], :face => :julia_symbol)
-            :julia_symbol
-        elseif view(content, region) in SINGLETON_IDENTIFIERS
-            :julia_singleton_identifier
-        elseif view(content, region) == "NaN"
-            :julia_number
         else
-            :julia_identifier
+            name = Symbol(view(content, region))
+            if name in SINGLETON_IDENTIFIERS
+                :julia_singleton_identifier
+            elseif name == :NaN
+                :julia_number
+            elseif name in BASE_TYPE_IDENTIFIERS
+                :julia_type
+            end
         end
-    elseif nkind == K"@"; :julia_macro
-    elseif nkind == K"MacroName"; :julia_macro
+    elseif nkind == K"macrocall" && length(node.args) >= 2 &&
+        kind(node.args[1]) == K"@" && kind(node.args[2]) == K"MacroName"
+        region = first(region):first(region)+node.args[2].span
+        :julia_macro
     elseif nkind == K"StringMacroName"; :julia_macro
     elseif nkind == K"CmdMacroName"; :julia_macro
-    elseif nkind == K"::"; :julia_type
+    elseif nkind == K"::";
+        if JuliaSyntax.is_trivia(node)
+            :julia_typedec
+        else
+            literal_typedecl = findfirst(
+                c ->kind(c) == K"::" && JuliaSyntax.is_trivia(c),
+                node.args)
+            if !isnothing(literal_typedecl)
+                shift = sum(c ->Int(c.span), node.args[1:literal_typedecl])
+                region = first(region)+shift:last(region)
+                :julia_type
+            end
+        end
+    elseif nkind == K"quote" && length(node.args) == 2 &&
+        kind(node.args[1]) == K":" && kind(node.args[2]) == K"Identifier"
+        :julia_symbol
     elseif nkind == K"Comment"; :julia_comment
     elseif nkind == K"String"; :julia_string
     elseif JuliaSyntax.is_string_delim(node); :julia_string_delim
@@ -146,22 +173,65 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
     elseif nkind == K"true" || nkind == K"false"; :julia_bool
     elseif JuliaSyntax.is_number(nkind); :julia_number
     elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
-        :julia_assignment
-    elseif JuliaSyntax.is_word_operator(nkind) && JuliaSyntax.is_trivia(node);
-        :julia_assignment
+        if nkind == K"="
+            ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
+        else # updating for <op>=
+            push!(highlights, (firstindex(content)+offset:node.span+offset-1, :face => :julia_operator))
+            push!(highlights, (node.span+offset:node.span+offset, :face => :julia_assignment))
+            nothing
+        end
     elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
         :julia_assignment
-    elseif JuliaSyntax.is_prec_comparison(nkind); :julia_comparator
-    elseif JuliaSyntax.is_operator(nkind) && !JuliaSyntax.is_prec_assignment(nkind) &&
-        !JuliaSyntax.is_word_operator(nkind) && nkind != K"." &&
-        (JuliaSyntax.is_trivia(node) || iszero(flags(node)));
-        :julia_operator
-    elseif JuliaSyntax.is_keyword(nkind) && JuliaSyntax.is_trivia(node); :julia_keyword
+    elseif (JuliaSyntax.is_keyword(nkind) ||nkind == K"->" ) && JuliaSyntax.is_trivia(node)
+        :julia_keyword
+    elseif nkind == K"where"
+        if JuliaSyntax.is_trivia(node)
+            :julia_keyword
+        else
+            literal_where = findfirst(
+                c ->kind(c) == K"where" && JuliaSyntax.is_trivia(c),
+                node.args)
+            if !isnothing(literal_where)
+                shift = sum(c ->Int(c.span), node.args[1:literal_where])
+                region = first(region)+shift:last(region)
+                :julia_type
+            end
+        end
+    elseif nkind == K"in"
+        ifelse(ppkind == K"for", :julia_keyword, :julia_comparator)
+    elseif nkind == K"isa"; :julia_builtin
+    elseif nkind in (K"&&", K"||", K"<:", K"===") && JuliaSyntax.is_trivia(node)
+        :julia_builtin
+    elseif JuliaSyntax.is_prec_comparison(nkind) && JuliaSyntax.is_trivia(node);
+        :julia_comparator
+    elseif isplainoperator(node); :julia_operator
+    elseif nkind == K"..." && JuliaSyntax.is_trivia(node); :julia_operator
+    elseif nkind == K"." && JuliaSyntax.is_trivia(node) && kind(pnode) == K"dotcall";
+        :julia_broadcast
+    elseif nkind in (K"call", K"dotcall") && JuliaSyntax.is_prefix_call(node)
+        argoffset, arg1 = 0, nothing
+        for arg in node.args
+            argoffset += arg.span
+            if !JuliaSyntax.is_trivia(arg)
+                arg1 = arg
+                break
+            end
+        end
+        if isnothing(arg1)
+        elseif kind(arg1) == K"Identifier"
+            region = first(region):first(region)+argoffset-1
+            name = Symbol(view(content, region))
+            ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
+        elseif kind(arg1) == K"." && length(arg1.args) == 3  &&
+            kind(arg1.args[end]) == K"quote" &&
+            length(arg1.args[end].args) == 1 &&
+            kind(arg1.args[end].args[1]) == K"Identifier"
+            region = first(region)+argoffset-arg1.args[end].args[1].span:first(region)+argoffset-1
+            name = Symbol(view(content, region))
+            ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
+        end
     elseif JuliaSyntax.is_error(nkind); :julia_error
     elseif ((depthchange, ptype) = paren_type(nkind)) |> last != :none
-        if nkind == K"(" && !isempty(highlights) && kind(lnode) == K"Identifier" && last(last(highlights[end])) == :julia_identifier
-            highlights[end] = (highlights[end][1], :face => :julia_funcall)
-        end
         depthref = getfield(pdepths, ptype)[]
         pdepth = if depthchange > 0
             getfield(pdepths, ptype)[] += depthchange
@@ -181,12 +251,26 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
     end
     !isnothing(face) &&
         push!(highlights, (region, :face => face))
+    if nkind == K"Comment"
+        for match in eachmatch(
+            r"(?:^|[(\[{[:space:]-])`([^[:space:]](?:.*?[^[:space:]])?)`(?:$|[!,\-.:;?\[\][:space:]])",
+            view(content, region))
+            code = first(match.captures)
+            push!(highlights, (firstindex(content)+offset+code.offset:firstindex(content)+offset+code.offset+code.ncodeunits-1,
+                               :face => :code))
+        end
+    elseif nkind == K"String"
+        for match in eachmatch(r"\\.", view(content, region))
+            push!(highlights, (firstindex(content)+offset+match.offset-1:firstindex(content)+offset+match.offset+ncodeunits(match.match)-2,
+                               :face => :julia_backslash_literal))
+        end
+    end
     isempty(node.args) && return
-    llnode, lnode = node, node
+    lnode = node
     for child in node.args
-        cctx = HighlightContext(content, offset, lnode, llnode, pdepths)
+        cctx = HighlightContext(content, offset, lnode, pdepths)
         _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
-        llnode, lnode = lnode, child
+        lnode = child
         offset += child.span
     end
 end
