@@ -201,6 +201,10 @@ By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
 `ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
 pre-generated `ast`.
 
+!!! warning
+    Note that the particular faces used by `JuliaSyntax`, and the way they
+    are applied, is subject to change.
+
 # Examples
 
 ```jldoctest
@@ -239,6 +243,10 @@ Modify `content` by applying syntax highlighting using `JuliaSyntax`.
 By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
 `ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
 pre-generated `ast`.
+
+!!! warning
+    Note that the particular faces used by `JuliaSyntax`, and the way they
+    are applied, is subject to change.
 
 # Examples
 
