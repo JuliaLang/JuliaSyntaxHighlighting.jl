@@ -366,4 +366,10 @@ function highlight!(str::SubString{AnnotatedString{S}}) where {S}
     str
 end
 
+if Base.generating_output()
+    highlight(read(@__FILE__, String))
+    highlight!(Base.AnnotatedString("1 + 2"))
+    highlight!(Base.AnnotatedString("1 + 2")[1:5])
+end
+
 end
