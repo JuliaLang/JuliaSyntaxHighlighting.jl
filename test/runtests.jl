@@ -17,10 +17,13 @@ sum1to8_highlighted = Base.AnnotatedString("sum(1:8)", [
     (8:8, :face => :julia_rainbow_paren_1)
 ])
 
-@test highlight("sum(1:8)") ==sum1to8_highlighted
-@test highlight(IOBuffer("sum(1:8)")) ==sum1to8_highlighted
-@test highlight(IOContext(IOBuffer("sum(1:8)"))) ==sum1to8_highlighted
+@test highlight("sum(1:8)") == sum1to8_highlighted
+@test highlight(IOBuffer("sum(1:8)")) == sum1to8_highlighted
+@test highlight(IOContext(IOBuffer("sum(1:8)"))) == sum1to8_highlighted
 
 astr_sum1to8 = Base.AnnotatedString("sum(1:8)")
 @test highlight!(astr_sum1to8) == sum1to8_highlighted
 @test astr_sum1to8 == sum1to8_highlighted
+
+# Check for string indexing issues
+@test Base.annotations(highlight(":π")) |> first |> first == 1:3

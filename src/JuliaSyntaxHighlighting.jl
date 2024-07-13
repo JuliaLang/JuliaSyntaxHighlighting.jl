@@ -113,6 +113,7 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
     region = firstindex(content)+offset:node.span+offset
+    regionstr = view(content, firstindex(content)+offset:prevind(content, node.span+offset+1))
     nkind = node.head.kind
     pnode = if !isnothing(parent) parent.node end
     pkind = if !isnothing(parent) kind(parent.node) end
@@ -129,7 +130,7 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
         if pkind == K"curly"
             :julia_type
         else
-            name = Symbol(view(content, region))
+            name = Symbol(regionstr)
             if name in SINGLETON_IDENTIFIERS
                 :julia_singleton_identifier
             elseif name == :NaN
@@ -220,14 +221,14 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
         if isnothing(arg1)
         elseif kind(arg1) == K"Identifier"
             region = first(region):first(region)+argoffset-1
-            name = Symbol(view(content, region))
+            name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         elseif kind(arg1) == K"." && length(arg1.args) == 3  &&
             kind(arg1.args[end]) == K"quote" &&
             length(arg1.args[end].args) == 1 &&
             kind(arg1.args[end].args[1]) == K"Identifier"
             region = first(region)+argoffset-arg1.args[end].args[1].span:first(region)+argoffset-1
-            name = Symbol(view(content, region))
+            name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         end
     elseif JuliaSyntax.is_error(nkind); :julia_error
@@ -254,13 +255,13 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
     if nkind == K"Comment"
         for match in eachmatch(
             r"(?:^|[(\[{[:space:]-])`([^[:space:]](?:.*?[^[:space:]])?)`(?:$|[!,\-.:;?\[\][:space:]])",
-            view(content, region))
+            regionstr)
             code = first(match.captures)
             push!(highlights, (firstindex(content)+offset+code.offset:firstindex(content)+offset+code.offset+code.ncodeunits-1,
                                :face => :code))
         end
     elseif nkind == K"String"
-        for match in eachmatch(r"\\.", view(content, region))
+        for match in eachmatch(r"\\.", regionstr)
             push!(highlights, (firstindex(content)+offset+match.offset-1:firstindex(content)+offset+match.offset+ncodeunits(match.match)-2,
                                :face => :julia_backslash_literal))
         end
