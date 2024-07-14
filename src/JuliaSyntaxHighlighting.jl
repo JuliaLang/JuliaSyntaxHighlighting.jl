@@ -6,19 +6,59 @@ using StyledStrings: Face, addface!
 
 public highlight, highlight!
 
-const MAX_PAREN_HIGHLIGHT_DEPTH = 6
-const RAINBOW_DELIMITERS_ENABLED = Ref(true)
-const UNMATCHED_DELIMITERS_ENABLED = Ref(true)
+"""
+    MAX_PAREN_HIGHLIGHT_DEPTH
 
+The number of `julia_rainbow_{paren,bracket_curly}_{n}` faces
+from [`HIGHLIGHT_FACES`](@ref) that can be cycled through.
+"""
+const MAX_PAREN_HIGHLIGHT_DEPTH = 6
+"""
+    RAINBOW_DELIMITERS_ENABLED
+
+Whether to use `julia_rainbow_{paren,bracket_curly}_{n}` faces for
+delimitors/parentheses (`()`, `[]`, `{}`) as opposed to just using
+`julia_parenthetical`.
+"""
+const RAINBOW_DELIMITERS_ENABLED = Ref(true)
+"""
+    UNMATCHED_DELIMITERS_ENABLED
+
+Whether to apply the `julia_unpaired_parenthetical` face to unpaired closing
+parenthesis (`)`, `]`, '}').
+"""
+const UNMATCHED_DELIMITERS_ENABLED = Ref(true)
+"""
+    SINGLETON_IDENTIFIERS
+
+Symbols that represent identifiers known to be instances of a singleton type,
+currently just `Nothing` and `Missing`.
+"""
 const SINGLETON_IDENTIFIERS = (:nothing, :missing)
 
+"""
+    BASE_TYPE_IDENTIFIERS
+
+A set of type identifiers defined in `Base` or `Core`.
+"""
 const BASE_TYPE_IDENTIFIERS =
     Set([n for n in names(Base, imported=true) if getglobal(Base, n) isa Type]) ∪
     Set([n for n in names(Core, imported=true) if getglobal(Core, n) isa Type])
 
+"""
+    BUILTIN_FUNCTIONS
+
+A set of identifiers that are defined in `Core` and a `Core.Builtin`.
+"""
 const BUILTIN_FUNCTIONS =
     Set([n for n in names(Core) if getglobal(Base, n) isa Core.Builtin])
 
+"""
+    HIGHLIGHT_FACES
+
+A list of `name => Face(...)` pairs that define the faces in
+`JuliaSyntaxHighlighting`. These are registered during module initialisation.
+"""
 const HIGHLIGHT_FACES = [
     # Julia syntax highlighting faces
     :julia_macro => Face(foreground=:magenta),
@@ -69,6 +109,18 @@ const HIGHLIGHT_FACES = [
 
 __init__() = foreach(addface!, HIGHLIGHT_FACES)
 
+"""
+    paren_type(k::Kind) -> (Int, Symbol)
+
+Return a pair of values giving the change in nesting depth
+caused by the paren `k` (+1 or -1), as well as a symbol
+indicating the kind of parenthesis:
+- `(` and `)` are a `paren`
+- `[` and `]` are a `bracket`
+- `{` and `}` are a `curly`
+
+Anything else is of type `none`, and produced a depth change of `0`.
+"""
 function paren_type(k::Kind)
     if     k == K"(";  1, :paren
     elseif k == K")"; -1, :paren
@@ -101,6 +153,16 @@ struct HighlightContext{S <: AbstractString}
     pdepths::ParenDepthCounter
 end
 
+"""
+    _hl_annotations(content::AbstractString, ast::GreenNode) -> Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}}
+
+Generate a list of `(range, annot)` pairs for the given `content` and `ast`.
+
+The `range` is a `UnitRange{Int}` that indexes into `ctx.content` and
+`annot` is a `Pair` of the form `:face => <face>`.
+
+This is a small wrapper around [`_hl_annotations!`](@ref) for convenience.
+"""
 function _hl_annotations(content::AbstractString, ast::GreenNode)
     highlights = Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}}()
     ctx = HighlightContext(content, 0, ast, ParenDepthCounter())
@@ -108,6 +170,16 @@ function _hl_annotations(content::AbstractString, ast::GreenNode)
     highlights
 end
 
+"""
+    _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}},
+                     lineage::GreenLineage, ctx::HighlightContext)
+
+Populate `highlights` with `(range, annot)` pairs for the given `lineage` and `ctx`,
+where `lineage` is expected to be consistent with `ctx.offset` and `ctx.lnode`.
+
+The `range` is a `UnitRange{Int}` that indexes into `ctx.content` and
+`annot` is a `Pair` of the form `:face => <face>`.
+"""
 function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}},
                           lineage::GreenLineage, ctx::HighlightContext)
     (; node, parent) = lineage
