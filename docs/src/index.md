@@ -47,23 +47,23 @@ The current set of faces, and their default values are as follows:
 - `julia_comparator`: inherits from `julia_operator`
 - `julia_assignment`: bright red
 - `julia_keyword`: red
-- `julia_parenthetical`: unstyled
-- `julia_unpaired_parenthetical`: inherit from `julia_error` and `julia_parenthetical`
+- `julia_parentheses`: unstyled
+- `julia_unpaired_parentheses`: inherit from `julia_error` and `julia_parentheses`
 - `julia_error`: red background
-- `julia_rainbow_paren_1`: bright green, inherits from `julia_parenthetical`
-- `julia_rainbow_paren_2`: bright blue, inherits from `julia_parenthetical`
-- `julia_rainbow_paren_3`: bright red, inherits from `julia_parenthetical`
+- `julia_rainbow_paren_1`: bright green, inherits from `julia_parentheses`
+- `julia_rainbow_paren_2`: bright blue, inherits from `julia_parentheses`
+- `julia_rainbow_paren_3`: bright red, inherits from `julia_parentheses`
 - `julia_rainbow_paren_4`: inherits from `julia_rainbow_paren_1`
 - `julia_rainbow_paren_5`: inherits from `julia_rainbow_paren_2`
 - `julia_rainbow_paren_6`: inherits from `julia_rainbow_paren_3`
-- `julia_rainbow_bracket_1`: blue, inherits from `julia_parenthetical`
-- `julia_rainbow_bracket_2`: bright_magenta, inherits from `julia_parenthetical`
+- `julia_rainbow_bracket_1`: blue, inherits from `julia_parentheses`
+- `julia_rainbow_bracket_2`: bright_magenta, inherits from `julia_parentheses`
 - `julia_rainbow_bracket_3`: inherits from `julia_rainbow_bracket_1`
 - `julia_rainbow_bracket_4`: inherits from `julia_rainbow_bracket_2`
 - `julia_rainbow_bracket_5`: inherits from `julia_rainbow_bracket_1`
 - `julia_rainbow_bracket_6`: inherits from `julia_rainbow_bracket_2`
-- `julia_rainbow_curly_1`: bright yellow, inherits from `julia_parenthetical`
-- `julia_rainbow_curly_2`: yellow, inherits from `julia_parenthetical`
+- `julia_rainbow_curly_1`: bright yellow, inherits from `julia_parentheses`
+- `julia_rainbow_curly_2`: yellow, inherits from `julia_parentheses`
 - `julia_rainbow_curly_3`: inherits from `julia_rainbow_curly_1`
 - `julia_rainbow_curly_4`: inherits from `julia_rainbow_curly_2`
 - `julia_rainbow_curly_5`: inherits from `julia_rainbow_curly_1`

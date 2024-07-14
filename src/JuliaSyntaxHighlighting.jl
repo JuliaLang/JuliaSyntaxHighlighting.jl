@@ -18,13 +18,13 @@ const MAX_PAREN_HIGHLIGHT_DEPTH = 6
 
 Whether to use `julia_rainbow_{paren,bracket_curly}_{n}` faces for
 delimitors/parentheses (`()`, `[]`, `{}`) as opposed to just using
-`julia_parenthetical`.
+`julia_parentheses`.
 """
 const RAINBOW_DELIMITERS_ENABLED = Ref(true)
 """
     UNMATCHED_DELIMITERS_ENABLED
 
-Whether to apply the `julia_unpaired_parenthetical` face to unpaired closing
+Whether to apply the `julia_unpaired_parentheses` face to unpaired closing
 parenthesis (`)`, `]`, '}').
 """
 const UNMATCHED_DELIMITERS_ENABLED = Ref(true)
@@ -83,24 +83,24 @@ const HIGHLIGHT_FACES = [
     :julia_comparator => Face(inherit = :julia_operator),
     :julia_assignment => Face(foreground=:bright_red),
     :julia_keyword => Face(foreground=:red),
-    :julia_parenthetical => Face(),
-    :julia_unpaired_parenthetical => Face(inherit=[:julia_error, :julia_parenthetical]),
+    :julia_parentheses => Face(),
+    :julia_unpaired_parentheses => Face(inherit=[:julia_error, :julia_parentheses]),
     :julia_error => Face(background=:red),
     # Rainbow delimitors (1-6, (), [], and {})
-    :julia_rainbow_paren_1 => Face(foreground=:bright_green, inherit=:julia_parenthetical),
-    :julia_rainbow_paren_2 => Face(foreground=:bright_blue, inherit=:julia_parenthetical),
-    :julia_rainbow_paren_3 => Face(foreground=:bright_red, inherit=:julia_parenthetical),
+    :julia_rainbow_paren_1 => Face(foreground=:bright_green, inherit=:julia_parentheses),
+    :julia_rainbow_paren_2 => Face(foreground=:bright_blue, inherit=:julia_parentheses),
+    :julia_rainbow_paren_3 => Face(foreground=:bright_red, inherit=:julia_parentheses),
     :julia_rainbow_paren_4 => Face(inherit=:julia_rainbow_paren_1),
     :julia_rainbow_paren_5 => Face(inherit=:julia_rainbow_paren_2),
     :julia_rainbow_paren_6 => Face(inherit=:julia_rainbow_paren_3),
-    :julia_rainbow_bracket_1 => Face(foreground=:blue, inherit=:julia_parenthetical),
-    :julia_rainbow_bracket_2 => Face(foreground=:bright_magenta, inherit=:julia_parenthetical),
+    :julia_rainbow_bracket_1 => Face(foreground=:blue, inherit=:julia_parentheses),
+    :julia_rainbow_bracket_2 => Face(foreground=:bright_magenta, inherit=:julia_parentheses),
     :julia_rainbow_bracket_3 => Face(inherit=:julia_rainbow_bracket_1),
     :julia_rainbow_bracket_4 => Face(inherit=:julia_rainbow_bracket_2),
     :julia_rainbow_bracket_5 => Face(inherit=:julia_rainbow_bracket_1),
     :julia_rainbow_bracket_6 => Face(inherit=:julia_rainbow_bracket_2),
-    :julia_rainbow_curly_1 => Face(foreground=:bright_yellow, inherit=:julia_parenthetical),
-    :julia_rainbow_curly_2 => Face(foreground=:yellow, inherit=:julia_parenthetical),
+    :julia_rainbow_curly_1 => Face(foreground=:bright_yellow, inherit=:julia_parentheses),
+    :julia_rainbow_curly_2 => Face(foreground=:yellow, inherit=:julia_parentheses),
     :julia_rainbow_curly_3 => Face(inherit=:julia_rainbow_curly_1),
     :julia_rainbow_curly_4 => Face(inherit=:julia_rainbow_curly_2),
     :julia_rainbow_curly_5 => Face(inherit=:julia_rainbow_curly_1),
@@ -314,9 +314,9 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
             depth0
         end
         if pdepth <= 0 && UNMATCHED_DELIMITERS_ENABLED[]
-            :julia_unpaired_parenthetical
+            :julia_unpaired_parentheses
         elseif !RAINBOW_DELIMITERS_ENABLED[]
-            :julia_parenthetical
+            :julia_parentheses
         else
             displaydepth = mod1(pdepth, MAX_PAREN_HIGHLIGHT_DEPTH)
             Symbol("julia_rainbow_$(ptype)_$(displaydepth)")
