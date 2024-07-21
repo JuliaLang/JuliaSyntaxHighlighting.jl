@@ -148,7 +148,7 @@ end
 
 struct HighlightContext{S <: AbstractString}
     content::S
-    offset::Int
+    offset::UInt
     lnode::GreenNode
     pdepths::ParenDepthCounter
 end
@@ -165,7 +165,7 @@ This is a small wrapper around [`_hl_annotations!`](@ref) for convenience.
 """
 function _hl_annotations(content::AbstractString, ast::GreenNode)
     highlights = Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}}()
-    ctx = HighlightContext(content, 0, ast, ParenDepthCounter())
+    ctx = HighlightContext(content, zero(UInt), ast, ParenDepthCounter())
     _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx)
     highlights
 end
