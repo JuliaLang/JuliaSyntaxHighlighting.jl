@@ -5,14 +5,14 @@ syntax highlight Julia code using `JuliaSyntax` and `StyledStrings`.
 
 It is intended for use across the standard library, and the wider ecosystem.
 
-## Functions
+## [Functions](@id stdlib-jsh-api)
 
 ```@docs
 JuliaSyntaxHighlighting.highlight
 JuliaSyntaxHighlighting.highlight!
 ```
 
-## Faces
+## [Faces](@id stdlib-jsh-faces)
 
 The `highlight`/`highlight!` methods work by applying custom faces to Julia
 code. As part of the standard library, these faces use privileged face names, of
