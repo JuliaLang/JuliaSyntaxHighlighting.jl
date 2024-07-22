@@ -1,10 +1,7 @@
 module JuliaSyntaxHighlighting
 
-import Base: JuliaSyntax, AnnotatedString, annotate!
-import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags
-using StyledStrings: Face, addface!
-
-public highlight, highlight!
+import JuliaSyntax: JuliaSyntax, @K_str, Kind, GreenNode, parseall, kind, flags
+using StyledStrings: Face, addface!, AnnotatedString, annotate!
 
 """
     MAX_PAREN_HIGHLIGHT_DEPTH
@@ -42,8 +39,8 @@ const SINGLETON_IDENTIFIERS = (:nothing, :missing)
 A set of type identifiers defined in `Base` or `Core`.
 """
 const BASE_TYPE_IDENTIFIERS =
-    Set([n for n in names(Base, imported=true) if getglobal(Base, n) isa Type]) ∪
-    Set([n for n in names(Core, imported=true) if getglobal(Core, n) isa Type])
+    Set([n for n in names(Base, imported=true) if getproperty(Base, n) isa Type]) ∪
+    Set([n for n in names(Core, imported=true) if getproperty(Core, n) isa Type])
 
 """
     BUILTIN_FUNCTIONS
@@ -51,7 +48,7 @@ const BASE_TYPE_IDENTIFIERS =
 A set of identifiers that are defined in `Core` and a `Core.Builtin`.
 """
 const BUILTIN_FUNCTIONS =
-    Set([n for n in names(Core) if getglobal(Base, n) isa Core.Builtin])
+    Set([n for n in names(Core) if getproperty(Base, n) isa Core.Builtin])
 
 """
     HIGHLIGHT_FACES
@@ -108,6 +105,11 @@ const HIGHLIGHT_FACES = [
 ]
 
 __init__() = foreach(addface!, HIGHLIGHT_FACES)
+
+@static if VERSION < v"1.1"
+    isnothing(::Nothing) = true
+    isnothing(::Any) = false
+end
 
 """
     paren_type(k::Kind) -> (Int, Symbol)
@@ -182,10 +184,14 @@ The `range` is a `UnitRange{Int}` that indexes into `ctx.content` and
 """
 function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}},
                           lineage::GreenLineage, ctx::HighlightContext)
-    (; node, parent) = lineage
-    (; content, offset, lnode, pdepths) = ctx
+    node, parent = lineage.node, lineage.parent
+    content, offset, lnode, pdepths = ctx.content, ctx.offset, ctx.lnode, ctx.pdepths
     region = firstindex(content)+offset:node.span+offset
-    regionstr = view(content, firstindex(content)+offset:prevind(content, node.span+offset+1))
+    regionstr = @static if VERSION >= v"1.6"
+        view(content, firstindex(content)+offset:prevind(content, node.span+offset+1))
+    else
+        content[firstindex(content)+offset:prevind(content, node.span+offset+1)]
+    end
     nkind = node.head.kind
     pnode = if !isnothing(parent) parent.node end
     pkind = if !isnothing(parent) kind(parent.node) end
@@ -437,12 +443,6 @@ function highlight!(str::SubString{AnnotatedString{S}}) where {S}
         annotate!(str, range, annot)
     end
     str
-end
-
-if Base.generating_output()
-    highlight(read(@__FILE__, String))
-    highlight!(Base.AnnotatedString("1 + 2"))
-    highlight!(Base.AnnotatedString("1 + 2")[1:5])
 end
 
 end
