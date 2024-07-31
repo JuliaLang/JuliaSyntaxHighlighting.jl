@@ -133,9 +133,9 @@ function paren_type(k::Kind)
 end
 
 struct ParenDepthCounter
-    paren::Ref{UInt}
-    bracket::Ref{UInt}
-    curly::Ref{UInt}
+    paren::Base.RefValue{UInt}
+    bracket::Base.RefValue{UInt}
+    curly::Base.RefValue{UInt}
 end
 
 ParenDepthCounter() =
