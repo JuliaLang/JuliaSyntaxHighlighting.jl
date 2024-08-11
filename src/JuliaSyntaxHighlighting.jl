@@ -163,10 +163,10 @@ The `range` is a `UnitRange{Int}` that indexes into `ctx.content` and
 
 This is a small wrapper around [`_hl_annotations!`](@ref) for convenience.
 """
-function _hl_annotations(content::AbstractString, ast::GreenNode)
+function _hl_annotations(content::AbstractString, ast::GreenNode; syntax_errors::Bool = false)
     highlights = Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}}()
     ctx = HighlightContext(content, zero(UInt), ast, ParenDepthCounter())
-    _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx)
+    _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx; syntax_errors)
     highlights
 end
 
@@ -181,7 +181,7 @@ The `range` is a `UnitRange{Int}` that indexes into `ctx.content` and
 `annot` is a `Pair` of the form `:face => <face>`.
 """
 function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, Any}}},
-                          lineage::GreenLineage, ctx::HighlightContext)
+                          lineage::GreenLineage, ctx::HighlightContext; syntax_errors::Bool = false)
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
     region = firstindex(content)+offset:node.span+offset
@@ -350,13 +350,16 @@ end
 
 """
     highlight(content::Union{AbstractString, IO},
-              ast::JuliaSyntax.GreenNode = <parsed content>) -> AnnotatedString{String}
+              ast::JuliaSyntax.GreenNode = <parsed content>;
+              syntax_errors::Bool = false) -> AnnotatedString{String}
 
 Apply syntax highlighting to `content` using `JuliaSyntax`.
 
 By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
 `ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
 pre-generated `ast`.
+
+When `syntax_errors` is set, the `julia_error` face is applied to detected syntax errors.
 
 !!! warning
     Note that the particular faces used by `JuliaSyntax`, and the way they
@@ -380,26 +383,30 @@ julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
 """
 function highlight end
 
-highlight(str::AbstractString) =
-    highlight(str, parseall(GreenNode, str, ignore_errors=true))
+highlight(str::AbstractString; syntax_errors::Bool = false) =
+    highlight(str, parseall(GreenNode, str, ignore_errors=true); syntax_errors)
 
-highlight(io::IO) = highlight(read(io, String))
+highlight(io::IO; syntax_errors::Bool = false) =
+    highlight(read(io, String); syntax_errors)
 
-highlight(io::IO, ast::GreenNode) =
-    highlight(read(io, String), ast)
+highlight(io::IO, ast::GreenNode; syntax_errors::Bool = false) =
+    highlight(read(io, String), ast; syntax_errors)
 
-highlight(str::AbstractString, ast::GreenNode) =
-    AnnotatedString(str, _hl_annotations(str, ast))
+highlight(str::AbstractString, ast::GreenNode; syntax_errors::Bool = false) =
+    AnnotatedString(str, _hl_annotations(str, ast; syntax_errors))
 
 """
     highlight!(content::Union{AnnotatedString, SubString{AnnotatedString}},
-               ast::JuliaSyntax.GreenNode = <parsed content>)
+               ast::JuliaSyntax.GreenNode = <parsed content>;
+               syntax_errors::Bool = false) -> content
 
 Modify `content` by applying syntax highlighting using `JuliaSyntax`.
 
 By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
 `ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
 pre-generated `ast`.
+
+When `syntax_errors` is set, the `julia_error` face is applied to detected syntax errors.
 
 !!! warning
     Note that the particular faces used by `JuliaSyntax`, and the way they
@@ -424,16 +431,16 @@ julia> Base.annotations(str)
  (8:8, :face => :julia_rainbow_paren_1)
 ```
 """
-function highlight!(str::AnnotatedString)
-    for (range, annot) in _hl_annotations(str.string, parseall(GreenNode, str.string, ignore_errors=true))
+function highlight!(str::AnnotatedString; syntax_errors::Bool = false)
+    for (range, annot) in _hl_annotations(str.string, parseall(GreenNode, str.string, ignore_errors=true); syntax_errors)
         annotate!(str, range, annot)
     end
     str
 end
 
-function highlight!(str::SubString{AnnotatedString{S}}) where {S}
+function highlight!(str::SubString{AnnotatedString{S}}; syntax_errors::Bool = false) where {S}
     plainstr = SubString{S}(str.string.string, str.offset, str.ncodeunits, Val(:noshift))
-    for (range, annot) in _hl_annotations(plainstr, parseall(GreenNode, plainstr, ignore_errors=true))
+    for (range, annot) in _hl_annotations(plainstr, parseall(GreenNode, plainstr, ignore_errors=true); syntax_errors)
         annotate!(str, range, annot)
     end
     str
