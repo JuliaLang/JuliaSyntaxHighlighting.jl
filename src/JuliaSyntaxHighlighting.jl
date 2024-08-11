@@ -132,14 +132,14 @@ function paren_type(k::Kind)
     end
 end
 
-struct ParenDepthCounter
-    paren::Base.RefValue{UInt}
-    bracket::Base.RefValue{UInt}
-    curly::Base.RefValue{UInt}
+mutable struct ParenDepthCounter
+    paren::UInt
+    bracket::UInt
+    curly::UInt
 end
 
 ParenDepthCounter() =
-    ParenDepthCounter(Ref(zero(UInt)), Ref(zero(UInt)), Ref(zero(UInt)))
+    ParenDepthCounter(zero(UInt), zero(UInt), zero(UInt))
 
 struct GreenLineage
     node::GreenNode
@@ -305,12 +305,12 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
         end
     elseif JuliaSyntax.is_error(nkind); :julia_error
     elseif ((depthchange, ptype) = paren_type(nkind)) |> last != :none
-        depthref = getfield(pdepths, ptype)[]
+        depthref = getfield(pdepths, ptype)
         pdepth = if depthchange > 0
-            getfield(pdepths, ptype)[] += depthchange
+            setfield!(pdepths, ptype, depthref + depthchange)
         else
-            depth0 = getfield(pdepths, ptype)[]
-            getfield(pdepths, ptype)[] += depthchange
+            depth0 = getfield(pdepths, ptype)
+            setfield!(pdepths, ptype, depthref + depthchange)
             depth0
         end
         if pdepth <= 0 && UNMATCHED_DELIMITERS_ENABLED[]
