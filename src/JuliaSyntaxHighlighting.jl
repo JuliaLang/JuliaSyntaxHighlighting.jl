@@ -303,7 +303,7 @@ function _hl_annotations!(highlights::Vector{Tuple{UnitRange{Int}, Pair{Symbol, 
             name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         end
-    elseif JuliaSyntax.is_error(nkind); :julia_error
+    elseif syntax_errors && JuliaSyntax.is_error(nkind); :julia_error
     elseif ((depthchange, ptype) = paren_type(nkind)) |> last != :none
         depthref = getfield(pdepths, ptype)
         pdepth = if depthchange > 0
