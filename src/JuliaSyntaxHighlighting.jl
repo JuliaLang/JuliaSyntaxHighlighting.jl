@@ -210,8 +210,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             end
         end
     elseif nkind == K"macrocall" && numchildren(node) >= 2 &&
-        kind(node.args[1]) == K"@" && kind(node.args[2]) == K"MacroName"
-        region = first(region):first(region)+node.args[2].span
+        kind(node[1]) == K"@" && kind(node[2]) == K"MacroName"
+        region = first(region):first(region)+node[2].span
         :julia_macro
     elseif nkind == K"StringMacroName"; :julia_macro
     elseif nkind == K"CmdMacroName"; :julia_macro
@@ -223,13 +223,13 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 c ->kind(c) == K"::" && JuliaSyntax.is_trivia(c),
                 node.args)
             if !isnothing(literal_typedecl)
-                shift = sum(c ->Int(c.span), node.args[1:literal_typedecl])
+                shift = sum(c ->Int(c.span), node[1:literal_typedecl])
                 region = first(region)+shift:last(region)
                 :julia_type
             end
         end
     elseif nkind == K"quote" && numchildren(node) == 2 &&
-        kind(node.args[1]) == K":" && kind(node.args[2]) == K"Identifier"
+        kind(node[1]) == K":" && kind(node[2]) == K"Identifier"
         :julia_symbol
     elseif nkind == K"Comment"; :julia_comment
     elseif nkind == K"String"; :julia_string
@@ -263,7 +263,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 c ->kind(c) == K"where" && JuliaSyntax.is_trivia(c),
                 node.args)
             if !isnothing(literal_where)
-                shift = sum(c ->Int(c.span), node.args[1:literal_where])
+                shift = sum(c ->Int(c.span), node[1:literal_where])
                 region = first(region)+shift:last(region)
                 :julia_type
             end
@@ -294,10 +294,10 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         elseif kind(arg1) == K"." && numchildren(arg1) == 3  &&
-            kind(arg1.args[end]) == K"quote" &&
-            numchildren(arg1.args[end]) == 1 &&
-            kind(arg1.args[end].args[1]) == K"Identifier"
-            region = first(region)+argoffset-arg1.args[end].args[1].span:first(region)+argoffset-1
+            kind(arg1[end]) == K"quote" &&
+            numchildren(arg1[end]) == 1 &&
+            kind(arg1[end][1]) == K"Identifier"
+            region = first(region)+argoffset-arg1[end][1].span:first(region)+argoffset-1
             name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         end
