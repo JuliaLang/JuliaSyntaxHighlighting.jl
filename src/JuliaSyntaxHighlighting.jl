@@ -182,8 +182,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                           lineage::GreenLineage, ctx::HighlightContext; syntax_errors::Bool = false)
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
-    region = firstindex(content)+offset:node.span+offset
-    regionstr = view(content, firstindex(content)+offset:prevind(content, node.span+offset+1))
+    region = firstindex(content)+offset:span(node)+offset
+    regionstr = view(content, firstindex(content)+offset:prevind(content, span(node)+offset+1))
     nkind = node.head.kind
     pnode = if !isnothing(parent) parent.node end
     pkind = if !isnothing(parent) kind(parent.node) end
@@ -211,7 +211,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         end
     elseif nkind == K"macrocall" && numchildren(node) >= 2 &&
         kind(node[1]) == K"@" && kind(node[2]) == K"MacroName"
-        region = first(region):first(region)+node[2].span
+        region = first(region):first(region)+span(node[2])
         :julia_macro
     elseif nkind == K"StringMacroName"; :julia_macro
     elseif nkind == K"CmdMacroName"; :julia_macro
@@ -223,7 +223,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 c ->kind(c) == K"::" && JuliaSyntax.is_trivia(c),
                 children(node))
             if !isnothing(literal_typedecl)
-                shift = sum(c ->Int(c.span), node[1:literal_typedecl])
+                shift = sum(c ->Int(span(c)), node[1:literal_typedecl])
                 region = first(region)+shift:last(region)
                 :julia_type
             end
@@ -247,8 +247,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         if nkind == K"="
             ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
         else # updating for <op>=
-            push!(highlights, (firstindex(content)+offset:node.span+offset-1, :face, :julia_operator))
-            push!(highlights, (node.span+offset:node.span+offset, :face, :julia_assignment))
+            push!(highlights, (firstindex(content)+offset:span(node)+offset-1, :face, :julia_operator))
+            push!(highlights, (span(node)+offset:span(node)+offset, :face, :julia_assignment))
             nothing
         end
     elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
@@ -263,7 +263,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 c ->kind(c) == K"where" && JuliaSyntax.is_trivia(c),
                 children(node))
             if !isnothing(literal_where)
-                shift = sum(c ->Int(c.span), node[1:literal_where])
+                shift = sum(c ->Int(span(c)), node[1:literal_where])
                 region = first(region)+shift:last(region)
                 :julia_type
             end
@@ -282,7 +282,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif nkind in (K"call", K"dotcall") && JuliaSyntax.is_prefix_call(node)
         argoffset, arg1 = 0, nothing
         for arg in children(node)
-            argoffset += arg.span
+            argoffset += span(arg)
             if !JuliaSyntax.is_trivia(arg)
                 arg1 = arg
                 break
@@ -297,7 +297,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             kind(arg1[end]) == K"quote" &&
             numchildren(arg1[end]) == 1 &&
             kind(arg1[end][1]) == K"Identifier"
-            region = first(region)+argoffset-arg1[end][1].span:first(region)+argoffset-1
+            region = first(region)+argoffset-span(arg1[end][1]):first(region)+argoffset-1
             name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         end
@@ -342,7 +342,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         cctx = HighlightContext(content, offset, lnode, pdepths)
         _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
         lnode = child
-        offset += child.span
+        offset += span(child)
     end
 end
 
