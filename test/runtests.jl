@@ -12,7 +12,6 @@ sum1to8_highlighted = Base.AnnotatedString("sum(1:8)", [
     (1:3, :face, :julia_funcall),
     (4:4, :face, :julia_rainbow_paren_1),
     (5:5, :face, :julia_number),
-    (6:6, :face, :julia_operator),
     (7:7, :face, :julia_number),
     (8:8, :face, :julia_rainbow_paren_1)
 ])
