@@ -241,7 +241,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             (highlights[end] = (highlights[end][1], :face, :julia_char_delim))
         :julia_char
     elseif nkind == K"'" && kind(lnode) == K"Char"; :julia_char_delim
-    elseif nkind == K"true" || nkind == K"false"; :julia_bool
+    elseif nkind == K"Bool"; :julia_bool
     elseif JuliaSyntax.is_number(nkind); :julia_number
     elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
         if nkind == K"="
