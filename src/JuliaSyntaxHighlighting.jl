@@ -195,7 +195,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         !JuliaSyntax.is_prec_assignment(node) &&
         !JuliaSyntax.is_word_operator(node) &&
         nkind != K"." && nkind != K"..." &&
-        (JuliaSyntax.is_trivia(node) || !JuliaSyntax.haschildren(node))
+        (JuliaSyntax.is_trivia(node) || JuliaSyntax.is_leaf(node))
     face = if nkind == K"Identifier"
         if pkind == K"curly"
             :julia_type
@@ -241,7 +241,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             (highlights[end] = (highlights[end][1], :face, :julia_char_delim))
         :julia_char
     elseif nkind == K"'" && kind(lnode) == K"Char"; :julia_char_delim
-    elseif nkind == K"true" || nkind == K"false"; :julia_bool
+    elseif nkind == K"Bool"; :julia_bool
     elseif JuliaSyntax.is_number(nkind); :julia_number
     elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
         if nkind == K"="
@@ -370,11 +370,10 @@ julia> JuliaSyntaxHighlighting.highlight("sum(1:8)")
 "sum(1:8)"
 
 julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
-6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
+5-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
 ```
@@ -420,11 +419,10 @@ julia> JuliaSyntaxHighlighting.highlight!(str)
 "sum(1:8)"
 
 julia> Base.annotations(str)
-6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
+5-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
 ```
