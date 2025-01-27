@@ -1,7 +1,7 @@
 module JuliaSyntaxHighlighting
 
 import Base: JuliaSyntax, AnnotatedString, annotate!
-import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags
+import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags, children, numchildren, span
 using StyledStrings: Face, addface!
 
 public highlight, highlight!
@@ -182,8 +182,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                           lineage::GreenLineage, ctx::HighlightContext; syntax_errors::Bool = false)
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
-    region = firstindex(content)+offset:node.span+offset
-    regionstr = view(content, firstindex(content)+offset:prevind(content, node.span+offset+1))
+    region = firstindex(content)+offset:span(node)+offset
+    regionstr = view(content, firstindex(content)+offset:prevind(content, span(node)+offset+1))
     nkind = node.head.kind
     pnode = if !isnothing(parent) parent.node end
     pkind = if !isnothing(parent) kind(parent.node) end
@@ -209,9 +209,9 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 :julia_type
             end
         end
-    elseif nkind == K"macrocall" && length(node.args) >= 2 &&
-        kind(node.args[1]) == K"@" && kind(node.args[2]) == K"MacroName"
-        region = first(region):first(region)+node.args[2].span
+    elseif nkind == K"macrocall" && numchildren(node) >= 2 &&
+        kind(node[1]) == K"@" && kind(node[2]) == K"MacroName"
+        region = first(region):first(region)+span(node[2])
         :julia_macro
     elseif nkind == K"StringMacroName"; :julia_macro
     elseif nkind == K"CmdMacroName"; :julia_macro
@@ -221,15 +221,15 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         else
             literal_typedecl = findfirst(
                 c ->kind(c) == K"::" && JuliaSyntax.is_trivia(c),
-                node.args)
+                children(node))
             if !isnothing(literal_typedecl)
-                shift = sum(c ->Int(c.span), node.args[1:literal_typedecl])
+                shift = sum(c ->Int(span(c)), node[1:literal_typedecl])
                 region = first(region)+shift:last(region)
                 :julia_type
             end
         end
-    elseif nkind == K"quote" && length(node.args) == 2 &&
-        kind(node.args[1]) == K":" && kind(node.args[2]) == K"Identifier"
+    elseif nkind == K"quote" && numchildren(node) == 2 &&
+        kind(node[1]) == K":" && kind(node[2]) == K"Identifier"
         :julia_symbol
     elseif nkind == K"Comment"; :julia_comment
     elseif nkind == K"String"; :julia_string
@@ -247,8 +247,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         if nkind == K"="
             ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
         else # updating for <op>=
-            push!(highlights, (firstindex(content)+offset:node.span+offset-1, :face, :julia_operator))
-            push!(highlights, (node.span+offset:node.span+offset, :face, :julia_assignment))
+            push!(highlights, (firstindex(content)+offset:span(node)+offset-1, :face, :julia_operator))
+            push!(highlights, (span(node)+offset:span(node)+offset, :face, :julia_assignment))
             nothing
         end
     elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
@@ -261,9 +261,9 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         else
             literal_where = findfirst(
                 c ->kind(c) == K"where" && JuliaSyntax.is_trivia(c),
-                node.args)
+                children(node))
             if !isnothing(literal_where)
-                shift = sum(c ->Int(c.span), node.args[1:literal_where])
+                shift = sum(c ->Int(span(c)), node[1:literal_where])
                 region = first(region)+shift:last(region)
                 :julia_type
             end
@@ -281,8 +281,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         :julia_broadcast
     elseif nkind in (K"call", K"dotcall") && JuliaSyntax.is_prefix_call(node)
         argoffset, arg1 = 0, nothing
-        for arg in node.args
-            argoffset += arg.span
+        for arg in children(node)
+            argoffset += span(arg)
             if !JuliaSyntax.is_trivia(arg)
                 arg1 = arg
                 break
@@ -293,11 +293,11 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             region = first(region):first(region)+argoffset-1
             name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
-        elseif kind(arg1) == K"." && length(arg1.args) == 3  &&
-            kind(arg1.args[end]) == K"quote" &&
-            length(arg1.args[end].args) == 1 &&
-            kind(arg1.args[end].args[1]) == K"Identifier"
-            region = first(region)+argoffset-arg1.args[end].args[1].span:first(region)+argoffset-1
+        elseif kind(arg1) == K"." && numchildren(arg1) == 3  &&
+            kind(arg1[end]) == K"quote" &&
+            numchildren(arg1[end]) == 1 &&
+            kind(arg1[end][1]) == K"Identifier"
+            region = first(region)+argoffset-span(arg1[end][1]):first(region)+argoffset-1
             name = Symbol(regionstr)
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         end
@@ -336,13 +336,13 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                                :face, :julia_backslash_literal))
         end
     end
-    isempty(node.args) && return
+    numchildren(node) == 0 && return
     lnode = node
-    for child in node.args
+    for child in children(node)
         cctx = HighlightContext(content, offset, lnode, pdepths)
         _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
         lnode = child
-        offset += child.span
+        offset += span(child)
     end
 end
 
