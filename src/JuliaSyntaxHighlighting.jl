@@ -195,7 +195,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         !JuliaSyntax.is_prec_assignment(node) &&
         !JuliaSyntax.is_word_operator(node) &&
         nkind != K"." && nkind != K"..." &&
-        (JuliaSyntax.is_trivia(node) || !JuliaSyntax.haschildren(node))
+        (JuliaSyntax.is_trivia(node) || JuliaSyntax.is_leaf(node))
     face = if nkind == K"Identifier"
         if pkind == K"curly"
             :julia_type
