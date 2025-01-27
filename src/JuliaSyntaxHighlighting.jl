@@ -1,7 +1,7 @@
 module JuliaSyntaxHighlighting
 
 import Base: JuliaSyntax, AnnotatedString, annotate!
-import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags
+import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags, children, numchildren, span
 using StyledStrings: Face, addface!
 
 public highlight, highlight!
