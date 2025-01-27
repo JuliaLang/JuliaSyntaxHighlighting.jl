@@ -336,7 +336,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                                :face, :julia_backslash_literal))
         end
     end
-    isempty(children(node)) && return
+    numchildren(node) == 0 && return
     lnode = node
     for child in children(node)
         cctx = HighlightContext(content, offset, lnode, pdepths)
