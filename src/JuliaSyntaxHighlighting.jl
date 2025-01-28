@@ -2,7 +2,7 @@ module JuliaSyntaxHighlighting
 
 import Base: JuliaSyntax, AnnotatedString, annotate!
 import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags
-using StyledStrings: Face, addface!
+using StyledStrings: Face, addface!, getface
 
 public highlight, highlight!
 
@@ -238,7 +238,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif nkind == K"`" || nkind == K"```"; :julia_cmdstring
     elseif nkind == K"Char"
         kind(lnode) == K"'" && !isempty(highlights) &&
-            (highlights[end] = (highlights[end][1], :face, :julia_char_delim))
+            (highlights[end] = (highlights[end][1], :face, getface(:julia_char_delim)))
         :julia_char
     elseif nkind == K"'" && kind(lnode) == K"Char"; :julia_char_delim
     elseif nkind == K"true" || nkind == K"false"; :julia_bool
@@ -247,8 +247,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         if nkind == K"="
             ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
         else # updating for <op>=
-            push!(highlights, (firstindex(content)+offset:node.span+offset-1, :face, :julia_operator))
-            push!(highlights, (node.span+offset:node.span+offset, :face, :julia_assignment))
+            push!(highlights, (firstindex(content)+offset:node.span+offset-1, :face, getface(:julia_operator)))
+            push!(highlights, (node.span+offset:node.span+offset, :face, getface(:julia_assignment)))
             nothing
         end
     elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
@@ -321,19 +321,19 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         end
     end
     !isnothing(face) &&
-        push!(highlights, (region, :face, face))
+        push!(highlights, (region, :face, getface(face)))
     if nkind == K"Comment"
         for match in eachmatch(
             r"(?:^|[(\[{[:space:]-])`([^[:space:]](?:.*?[^[:space:]])?)`(?:$|[!,\-.:;?\[\][:space:]])",
             regionstr)
             code = first(match.captures)
             push!(highlights, (firstindex(content)+offset+code.offset:firstindex(content)+offset+code.offset+code.ncodeunits-1,
-                               :face, :code))
+                               :face, getface(:code)))
         end
     elseif nkind == K"String"
         for match in eachmatch(r"\\.", regionstr)
             push!(highlights, (firstindex(content)+offset+match.offset-1:firstindex(content)+offset+match.offset+ncodeunits(match.match)-2,
-                               :face, :julia_backslash_literal))
+                               :face, getface(:julia_backslash_literal)))
         end
     end
     isempty(node.args) && return
