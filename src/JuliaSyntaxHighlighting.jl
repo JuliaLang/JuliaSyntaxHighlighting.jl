@@ -370,11 +370,10 @@ julia> JuliaSyntaxHighlighting.highlight("sum(1:8)")
 "sum(1:8)"
 
 julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
-6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
+5-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
 ```
@@ -420,11 +419,10 @@ julia> JuliaSyntaxHighlighting.highlight!(str)
 "sum(1:8)"
 
 julia> Base.annotations(str)
-6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
+5-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
 ```
