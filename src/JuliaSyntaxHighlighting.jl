@@ -216,7 +216,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif nkind == K"StringMacroName"; :julia_macro
     elseif nkind == K"CmdMacroName"; :julia_macro
     elseif nkind == K"::";
-        if JuliaSyntax.is_trivia(node)
+        if JuliaSyntax.is_trivia(node) || numchildren(node) == 0
             :julia_typedec
         else
             literal_typedecl = findfirst(
@@ -256,7 +256,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif (JuliaSyntax.is_keyword(nkind) ||nkind == K"->" ) && JuliaSyntax.is_trivia(node)
         :julia_keyword
     elseif nkind == K"where"
-        if JuliaSyntax.is_trivia(node)
+        if JuliaSyntax.is_trivia(node) || numchildren(node) == 0
             :julia_keyword
         else
             literal_where = findfirst(
