@@ -215,13 +215,13 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         :julia_macro
     elseif nkind == K"StringMacroName"; :julia_macro
     elseif nkind == K"CmdMacroName"; :julia_macro
-    elseif nkind == K"::";
+    elseif nkind == K"::"
         if JuliaSyntax.is_trivia(node) || numchildren(node) == 0
             :julia_typedec
         else
             literal_typedecl = findfirst(
-                c ->kind(c) == K"::" && JuliaSyntax.is_trivia(c),
-                children(node))
+                c -> kind(c) == K"::" && JuliaSyntax.is_trivia(c),
+                something(children(node), GreenNode[]))
             if !isnothing(literal_typedecl)
                 shift = sum(c ->Int(span(c)), node[1:literal_typedecl])
                 region = first(region)+shift:last(region)
@@ -260,8 +260,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             :julia_keyword
         else
             literal_where = findfirst(
-                c ->kind(c) == K"where" && JuliaSyntax.is_trivia(c),
-                children(node))
+                c -> kind(c) == K"where" && JuliaSyntax.is_trivia(c),
+                something(children(node), GreenNode[]))
             if !isnothing(literal_where)
                 shift = sum(c ->Int(span(c)), node[1:literal_where])
                 region = first(region)+shift:last(region)
@@ -281,7 +281,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         :julia_broadcast
     elseif nkind in (K"call", K"dotcall") && JuliaSyntax.is_prefix_call(node)
         argoffset, arg1 = 0, nothing
-        for arg in children(node)
+        for arg in something(children(node), GreenNode[])
             argoffset += span(arg)
             if !JuliaSyntax.is_trivia(arg)
                 arg1 = arg
@@ -338,7 +338,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     end
     numchildren(node) == 0 && return
     lnode = node
-    for child in children(node)
+    for child in something(children(node), GreenNode[])
         cctx = HighlightContext(content, offset, lnode, pdepths)
         _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
         lnode = child
