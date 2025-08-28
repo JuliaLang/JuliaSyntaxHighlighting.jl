@@ -42,7 +42,7 @@ const SINGLETON_IDENTIFIERS = (:nothing, :missing)
 A set of identifiers that are defined in `Core` and a `Core.Builtin`.
 """
 const BUILTIN_FUNCTIONS =
-    Set([n for n in names(Base) if getglobal(Base, n) isa Core.Builtin])
+    Set(push!([n for n in names(Base) if getglobal(Base, n) isa Core.Builtin], :ccall))
 
 """
     HIGHLIGHT_FACES
