@@ -215,7 +215,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         nkind != K"." && nkind != K"..." &&
         (JuliaSyntax.is_trivia(node) || JuliaSyntax.is_leaf(node))
     face = if nkind == K"Identifier"
-        if pkind == K"curly"
+        if pkind == K"curly" && kind(lnode) != K"call" && !(kind(lnode) == K"curly" && ppkind == K"call")
             :julia_type
         elseif pkind == K"op=" && kind(lnode) != K"op=" &&
             regionstr in OPERATOR_KINDS
@@ -302,8 +302,12 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif nkind == K"." && JuliaSyntax.is_trivia(node) && kind(pnode) == K"dotcall";
         :julia_broadcast
     elseif nkind in (K"call", K"dotcall") && JuliaSyntax.is_prefix_call(node)
+        cargs = children(node)
+        if !isempty(cargs) && kind(first(cargs)) == K"curly"
+            cargs = children(first(cargs))
+        end
         argoffset, arg1 = 0, nothing
-        for arg in something(children(node), GreenNode[])
+        for arg in something(cargs, GreenNode[])
             argoffset += span(arg)
             if !JuliaSyntax.is_trivia(arg)
                 arg1 = arg
@@ -317,7 +321,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         elseif kind(arg1) == K"." && numchildren(arg1) == 3 && kind(arg1[end]) == K"Identifier"
             region = first(region)+argoffset-span(arg1[end]):first(region)+argoffset-1
-            name = Symbol(view(regionstr, 1:argoffset))
+            name = Symbol(view(regionstr, (1+argoffset-span(arg1[end])):argoffset))
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         end
     elseif syntax_errors && JuliaSyntax.is_error(nkind); :julia_error
