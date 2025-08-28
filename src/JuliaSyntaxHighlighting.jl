@@ -37,6 +37,29 @@ currently just `Nothing` and `Missing`.
 const SINGLETON_IDENTIFIERS = (:nothing, :missing)
 
 """
+    OPERATOR_KINDS
+
+A set of known operator kind strings.
+
+This is a workaround for operators that are classified as `K"Identifier"`.
+"""
+const OPERATOR_KINDS = if isdefined(JuliaSyntax, :_kind_str_to_int) && isdefined(JuliaSyntax, :_kind_int_to_str)
+    let (str2int, int2str) = (getglobal(JuliaSyntax, :_kind_str_to_int), getglobal(JuliaSyntax, :_kind_int_to_str))
+        op_start = get(str2int, "BEGIN_OPS", typemax(UInt16))
+        op_end = get(str2int, "END_OPS", typemin(UInt16))
+        ops = Set{String}()
+        for int in op_start:op_end
+            op = get(int2str, int, "")
+            !isempty(op) && !startswith(op, "Error")
+            push!(ops, op)
+        end
+        ops
+    end
+else
+    Set{String}()
+end
+
+"""
     BUILTIN_FUNCTIONS
 
 A set of identifiers that are defined in `Core` and a `Core.Builtin`.
@@ -72,6 +95,7 @@ const HIGHLIGHT_FACES = [
     :julia_broadcast => Face(inherit=:julia_operator),
     :julia_builtin => Face(),
     :julia_operator => Face(),
+    :julia_opassignment => Face(inherit=:julia_assignment),
     :julia_comparator => Face(inherit=:julia_operator),
     :julia_assignment => Face(),
     :julia_keyword => Face(foreground=:red),
@@ -181,9 +205,11 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     pkind = if !isnothing(parent) kind(parent.node) end
     ppkind = if !isnothing(parent) && !isnothing(parent.parent)
         kind(parent.parent.node) end
-    isplainoperator(node) =
+    isplainoperator(node, pnode) =
         JuliaSyntax.is_operator(node) &&
-        !JuliaSyntax.is_trivia(node) &&
+        (!JuliaSyntax.is_trivia(node) ||
+         # HACK: This handles a case where an operator is misleadingly labelled as trivia
+         !isnothing(pnode) && JuliaSyntax.is_infix_op_call(pnode)) &&
         !JuliaSyntax.is_prec_assignment(node) &&
         !JuliaSyntax.is_word_operator(node) &&
         nkind != K"." && nkind != K"..." &&
@@ -191,6 +217,16 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     face = if nkind == K"Identifier"
         if pkind == K"curly"
             :julia_type
+        elseif pkind == K"op=" && kind(lnode) != K"op=" &&
+            regionstr in OPERATOR_KINDS
+            :julia_opassignment
+        elseif pkind ∈ (K"call", K"dotcall") && regionstr in OPERATOR_KINDS
+            # HACK: The first operator isn't a `K"<op>"` for /some/ reason in
+            # JuliaSyntax 1.0.
+            :julia_operator
+        elseif pkind == K"comparison" && regionstr in OPERATOR_KINDS
+            # HACK: The same as above.
+            :julia_comparator
         else
             name = Symbol(regionstr)
             if name in SINGLETON_IDENTIFIERS
@@ -226,15 +262,12 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif JuliaSyntax.is_string_delim(node); :julia_string_delim
     elseif nkind == K"CmdString"; :julia_cmd
     elseif nkind == K"`" || nkind == K"```"; :julia_cmd_delim
-    elseif nkind == K"Char"
-        kind(lnode) == K"'" && !isempty(highlights) &&
-            (highlights[end] = (highlights[end][1], :face, :julia_char_delim))
-        :julia_char
-    elseif nkind == K"'" && kind(lnode) == K"Char"; :julia_char_delim
+    elseif nkind == K"Char"; :julia_char
+    elseif nkind == K"'" && pkind == K"char"; :julia_char_delim
     elseif nkind == K"Bool"; :julia_bool
     elseif JuliaSyntax.is_number(nkind); :julia_number
     elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
-        if nkind == K"="
+        if JuliaSyntax.is_syntactic_assignment(nkind)
             ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
         else # updating for <op>=
             push!(highlights, (firstindex(content)+offset:span(node)+offset-1, :face, :julia_operator))
@@ -258,14 +291,13 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 :julia_type
             end
         end
-    elseif nkind == K"in"
-        ifelse(ppkind == K"for", :julia_keyword, :julia_comparator)
+    elseif nkind == K"in" && pkind == K"in"; :julia_keyword
     elseif nkind == K"isa"; :julia_builtin
     elseif nkind in (K"&&", K"||", K"<:", K"===") && JuliaSyntax.is_trivia(node)
         :julia_builtin
     elseif JuliaSyntax.is_prec_comparison(nkind) && JuliaSyntax.is_trivia(node);
         :julia_comparator
-    elseif isplainoperator(node); :julia_operator
+    elseif isplainoperator(node, pnode); :julia_operator
     elseif nkind == K"..." && JuliaSyntax.is_trivia(node); :julia_operator
     elseif nkind == K"." && JuliaSyntax.is_trivia(node) && kind(pnode) == K"dotcall";
         :julia_broadcast
@@ -281,14 +313,11 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         if isnothing(arg1)
         elseif kind(arg1) == K"Identifier"
             region = first(region):first(region)+argoffset-1
-            name = Symbol(regionstr)
+            name = Symbol(view(regionstr, 1:argoffset))
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
-        elseif kind(arg1) == K"." && numchildren(arg1) == 3  &&
-            kind(arg1[end]) == K"quote" &&
-            numchildren(arg1[end]) == 1 &&
-            kind(arg1[end][1]) == K"Identifier"
-            region = first(region)+argoffset-span(arg1[end][1]):first(region)+argoffset-1
-            name = Symbol(regionstr)
+        elseif kind(arg1) == K"." && numchildren(arg1) == 3 && kind(arg1[end]) == K"Identifier"
+            region = first(region)+argoffset-span(arg1[end]):first(region)+argoffset-1
+            name = Symbol(view(regionstr, 1:argoffset))
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
         end
     elseif syntax_errors && JuliaSyntax.is_error(nkind); :julia_error
@@ -360,10 +389,11 @@ julia> JuliaSyntaxHighlighting.highlight("sum(1:8)")
 "sum(1:8)"
 
 julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
-5-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
+6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
 ```
@@ -409,10 +439,11 @@ julia> JuliaSyntaxHighlighting.highlight!(str)
 "sum(1:8)"
 
 julia> Base.annotations(str)
-5-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
+6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
 ```
