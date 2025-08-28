@@ -71,7 +71,8 @@ const HIGHLIGHT_FACES = [
     :julia_regex => Face(),
     :julia_backslash_literal => Face(),
     :julia_string_delim => Face(foreground=:julia_string),
-    :julia_cmdstring => Face(),
+    :julia_cmd => Face(),
+    :julia_cmd_delim => Face(),
     :julia_char => Face(inherit=:julia_string),
     :julia_char_delim => Face(inherit=:julia_string_delim),
     :julia_number => Face(),
@@ -234,8 +235,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif nkind == K"Comment"; :julia_comment
     elseif nkind == K"String"; :julia_string
     elseif JuliaSyntax.is_string_delim(node); :julia_string_delim
-    elseif nkind == K"CmdString"; :julia_cmdstring
-    elseif nkind == K"`" || nkind == K"```"; :julia_cmdstring
+    elseif nkind == K"CmdString"; :julia_cmd
+    elseif nkind == K"`" || nkind == K"```"; :julia_cmd_delim
     elseif nkind == K"Char"
         kind(lnode) == K"'" && !isempty(highlights) &&
             (highlights[end] = (highlights[end][1], :face, :julia_char_delim))
