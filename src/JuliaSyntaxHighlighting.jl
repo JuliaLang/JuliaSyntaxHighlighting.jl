@@ -37,15 +37,6 @@ currently just `Nothing` and `Missing`.
 const SINGLETON_IDENTIFIERS = (:nothing, :missing)
 
 """
-    BASE_TYPE_IDENTIFIERS
-
-A set of type identifiers defined in `Base` or `Core`.
-"""
-const BASE_TYPE_IDENTIFIERS =
-    Set([n for n in names(Base, imported=true) if getglobal(Base, n) isa Type]) ∪
-    Set([n for n in names(Core, imported=true) if getglobal(Core, n) isa Type])
-
-"""
     BUILTIN_FUNCTIONS
 
 A set of identifiers that are defined in `Core` and a `Core.Builtin`.
@@ -206,8 +197,6 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 :julia_singleton_identifier
             elseif name == :NaN
                 :julia_number
-            elseif name in BASE_TYPE_IDENTIFIERS
-                :julia_type
             end
         end
     elseif nkind == K"macrocall" && numchildren(node) >= 2 &&
