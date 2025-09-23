@@ -157,15 +157,15 @@ end
 ParenDepthCounter() =
     ParenDepthCounter(zero(UInt), zero(UInt), zero(UInt))
 
-struct GreenLineage
-    node::GreenNode
-    parent::Union{Nothing, GreenLineage}
+struct GreenLineage{H}
+    node::GreenNode{H}
+    parent::Union{Nothing, GreenLineage{H}}
 end
 
-struct HighlightContext{S <: AbstractString}
+struct HighlightContext{H, S <: AbstractString}
     content::S
     offset::UInt
-    lnode::GreenNode
+    lnode::GreenNode{H}
     pdepths::ParenDepthCounter
 end
 
