@@ -314,6 +314,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 break
             end
         end
+        argoffset = thisind(regionstr, argoffset)
         if isnothing(arg1)
         elseif kind(arg1) == K"Identifier"
             region = first(region):first(region)+argoffset-1
