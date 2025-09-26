@@ -460,8 +460,19 @@ function highlight!(str::AnnotatedString; syntax_errors::Bool = false)
     str
 end
 
+@static if isdefined(Base, :unannotate)
+    # This function uses SubString and AnnotatedString internals, but for current
+    # and future versions, Base.unannotate is defined, and so this cannot break
+    # in the future.
+    const unannotate = Base.unannotate
+else
+    function unannotate(s::SubString{AnnotatedString{S}}) where S
+        SubString{S}(s.string.string, s.offset, s.ncodeunits, Val(:noshift))
+    end
+end
+
 function highlight!(str::SubString{AnnotatedString{S}}; syntax_errors::Bool = false) where {S}
-    plainstr = SubString{S}(str.string.string, str.offset, str.ncodeunits, Val(:noshift))
+    plainstr = unannotate(str)
     for ann in _hl_annotations(plainstr, parseall(GreenNode, plainstr, ignore_errors=true); syntax_errors)
         annotate!(str, ann.region, ann.label, ann.value)
     end
