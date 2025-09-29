@@ -235,11 +235,10 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 :julia_number
             end
         end
-    elseif nkind == K"macrocall" && numchildren(node) >= 2 &&
-        kind(node[1]) == K"@" && kind(node[2]) == K"MacroName"
-        region = first(region):first(region)+span(node[2])
+    elseif nkind == K"macrocall" && kind(node[1]) == K"macro_name"
+        region = first(region):first(region)+span(node[1])-1
         :julia_macro
-    elseif nkind == K"StringMacroName"; :julia_macro
+    elseif nkind == K"StrMacroName"; :julia_macro
     elseif nkind == K"CmdMacroName"; :julia_macro
     elseif nkind == K"::"
         if JuliaSyntax.is_trivia(node) || numchildren(node) == 0
