@@ -43,20 +43,19 @@ A set of known operator kind strings.
 
 This is a workaround for operators that are classified as `K"Identifier"`.
 """
-const OPERATOR_KINDS = if isdefined(JuliaSyntax, :_kind_str_to_int) && isdefined(JuliaSyntax, :_kind_int_to_str)
-    let (str2int, int2str) = (getglobal(JuliaSyntax, :_kind_str_to_int), getglobal(JuliaSyntax, :_kind_int_to_str))
+const OPERATOR_KINDS = Set{String}()
+
+if isdefined(JuliaSyntax, :_kind_str_to_int) && isdefined(JuliaSyntax, :_kind_int_to_str)
+    let (str2int, int2str) = (JuliaSyntax._kind_str_to_int, JuliaSyntax._kind_int_to_str)
         op_start = get(str2int, "BEGIN_OPS", typemax(UInt16))
         op_end = get(str2int, "END_OPS", typemin(UInt16))
-        ops = Set{String}()
         for int in op_start:op_end
             op = get(int2str, int, "")
-            !isempty(op) && !startswith(op, "Error")
-            push!(ops, op)
+            if !isempty(op) && !startswith(op, "Error")
+                push!(OPERATOR_KINDS, op)
+            end
         end
-        ops
     end
-else
-    Set{String}()
 end
 
 """
