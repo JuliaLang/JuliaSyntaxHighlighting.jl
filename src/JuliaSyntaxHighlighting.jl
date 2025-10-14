@@ -237,8 +237,10 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif nkind == K"macrocall" && kind(node[1]) == K"macro_name"
         region = first(region):first(region)+span(node[1])-1
         :julia_macro
-    elseif nkind == K"StrMacroName"; :julia_macro
-    elseif nkind == K"CmdMacroName"; :julia_macro
+    elseif nkind == K"StrMacroName"
+        :julia_macro
+    elseif nkind == K"CmdMacroName"
+        :julia_macro
     elseif nkind == K"::"
         if JuliaSyntax.is_trivia(node) || numchildren(node) == 0
             :julia_typedec
@@ -255,15 +257,24 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif nkind == K"quote" && numchildren(node) == 2 &&
         kind(node[1]) == K":" && kind(node[2]) == K"Identifier"
         :julia_symbol
-    elseif nkind == K"Comment"; :julia_comment
-    elseif nkind == K"String"; :julia_string
-    elseif JuliaSyntax.is_string_delim(node); :julia_string_delim
-    elseif nkind == K"CmdString"; :julia_cmd
-    elseif nkind == K"`" || nkind == K"```"; :julia_cmd_delim
-    elseif nkind == K"Char"; :julia_char
-    elseif nkind == K"'" && pkind == K"char"; :julia_char_delim
-    elseif nkind == K"Bool"; :julia_bool
-    elseif JuliaSyntax.is_number(nkind); :julia_number
+    elseif nkind == K"Comment"
+        :julia_comment
+    elseif nkind == K"String"
+        :julia_string
+    elseif JuliaSyntax.is_string_delim(node)
+        :julia_string_delim
+    elseif nkind == K"CmdString"
+        :julia_cmd
+    elseif nkind == K"`" || nkind == K"```"
+        :julia_cmd_delim
+    elseif nkind == K"Char"
+        :julia_char
+    elseif nkind == K"'" && pkind == K"char"
+        :julia_char_delim
+    elseif nkind == K"Bool"
+        :julia_bool
+    elseif JuliaSyntax.is_number(nkind)
+        :julia_number
     elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
         if JuliaSyntax.is_syntactic_assignment(nkind)
             ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
@@ -289,14 +300,18 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
                 :julia_type
             end
         end
-    elseif nkind == K"in" && pkind == K"in"; :julia_keyword
-    elseif nkind == K"isa"; :julia_builtin
+    elseif nkind == K"in" && pkind == K"in"
+        :julia_keyword
+    elseif nkind == K"isa"
+        :julia_builtin
     elseif nkind in (K"&&", K"||", K"<:", K"===") && JuliaSyntax.is_trivia(node)
         :julia_builtin
     elseif JuliaSyntax.is_prec_comparison(nkind) && JuliaSyntax.is_trivia(node);
         :julia_comparator
-    elseif isplainoperator(node, pnode); :julia_operator
-    elseif nkind == K"..." && JuliaSyntax.is_trivia(node); :julia_operator
+    elseif isplainoperator(node, pnode)
+        :julia_operator
+    elseif nkind == K"..." && JuliaSyntax.is_trivia(node)
+        :julia_operator
     elseif nkind == K"." && JuliaSyntax.is_trivia(node) && kind(pnode) == K"dotcall";
         :julia_broadcast
     elseif nkind in (K"call", K"dotcall") && JuliaSyntax.is_prefix_call(node)
