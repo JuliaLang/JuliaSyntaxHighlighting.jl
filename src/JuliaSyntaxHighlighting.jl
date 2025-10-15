@@ -217,7 +217,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     face = if nkind == K"Identifier"
         if pkind == K"curly" && kind(lnode) != K"call" && !(kind(lnode) == K"curly" && ppkind == K"call")
             :julia_type
-        elseif pkind == K"call" && ppkind == K"function"
+        elseif pkind == kind(lnode) == K"call" && ppkind == K"function"
             :julia_funcdef
         elseif pkind == K"op=" && kind(lnode) != K"op=" &&
             regionstr in OPERATOR_KINDS
