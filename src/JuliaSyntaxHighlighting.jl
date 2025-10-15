@@ -148,13 +148,13 @@ function paren_type(k::Kind)
 end
 
 mutable struct ParenDepthCounter
-    paren::UInt
-    bracket::UInt
-    curly::UInt
+    paren::Int
+    bracket::Int
+    curly::Int
 end
 
 ParenDepthCounter() =
-    ParenDepthCounter(zero(UInt), zero(UInt), zero(UInt))
+    ParenDepthCounter(0, 0, 0)
 
 struct GreenLineage{H}
     node::GreenNode{H}
@@ -346,7 +346,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             setfield!(pdepths, ptype, depthref + depthchange)
         else
             depth0 = getfield(pdepths, ptype)
-            setfield!(pdepths, ptype, depthref + depthchange)
+            setfield!(pdepths, ptype, max(0, depthref + depthchange))
             depth0
         end
         if pdepth <= 0 && UNMATCHED_DELIMITERS_ENABLED[]
