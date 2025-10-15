@@ -91,6 +91,7 @@ const HIGHLIGHT_FACES = [
     :julia_number => Face(),
     :julia_bool => Face(),
     :julia_funcall => Face(),
+    :julia_funcdef => Face(inherit=:julia_funcall),
     :julia_broadcast => Face(inherit=:julia_operator),
     :julia_builtin => Face(),
     :julia_operator => Face(),
@@ -216,6 +217,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     face = if nkind == K"Identifier"
         if pkind == K"curly" && kind(lnode) != K"call" && !(kind(lnode) == K"curly" && ppkind == K"call")
             :julia_type
+        elseif pkind == K"call" && ppkind == K"function"
+            :julia_funcdef
         elseif pkind == K"op=" && kind(lnode) != K"op=" &&
             regionstr in OPERATOR_KINDS
             :julia_opassignment
@@ -329,7 +332,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         end
         argoffset = thisind(regionstr, argoffset)
         if isnothing(arg1)
-        elseif kind(arg1) == K"Identifier"
+        elseif kind(arg1) == K"Identifier" && pkind != K"function"
             region = first(region):first(region)+argoffset-1
             name = Symbol(view(regionstr, 1:argoffset))
             ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)

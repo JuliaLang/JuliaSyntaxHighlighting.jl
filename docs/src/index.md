@@ -41,6 +41,7 @@ The current set of faces, and their default values are as follows:
 - `julia_number`: bright magenta
 - `julia_bool`: inherits from `julia_number`
 - `julia_funcall`: cyan
+- `julia_funcdef`: cyan
 - `julia_broadcast`: bright blue, bold
 - `julia_builtin`: bright blue
 - `julia_operator`: blue
