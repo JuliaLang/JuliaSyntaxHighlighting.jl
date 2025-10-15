@@ -27,3 +27,12 @@ astr_sum1to8 = Base.AnnotatedString("sum(1:8)")
 
 # Check for string indexing issues
 @test Base.annotations(highlight(":π")) |> first |> first == 1:3
+
+# Test unpaired parentheses (issue #17)
+# Test consecutive unpaired closing parens and that depth counter resets properly
+reset_after_unpaired = highlight("(()))) ()")
+anns = Base.annotations(reset_after_unpaired)
+@test anns[5].value == :julia_unpaired_parentheses  # First unpaired
+@test anns[6].value == :julia_unpaired_parentheses  # Second unpaired
+@test anns[7].value == :julia_rainbow_paren_1       # Opening after reset
+@test anns[8].value == :julia_rainbow_paren_1       # Closing after reset
