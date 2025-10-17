@@ -1,9 +1,7 @@
 # Julia Syntax Highlighting
 
-<!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaLang.github.io/JuliaSyntaxHighlighting.jl/stable/) -->
-<!-- [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaLang.github.io/JuliaSyntaxHighlighting.jl/dev/) -->
-<!-- [![Build Status](https://github.com/JuliaLang/JuliaSyntaxHighlighting.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/JuliaLang/JuliaSyntaxHighlighting.jl/actions/workflows/CI.yml?query=branch%3Amain) -->
-<!-- [![Coverage](https://codecov.io/gh/JuliaLang/JuliaSyntaxHighlighting.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/JuliaLang/JuliaSyntaxHighlighting.jl) -->
+[![][docs-dev-img]][docs-dev-url]
+[![][ci-img]][ci-url]
 
 The `JuliaSyntaxHighlighting` package builds on the `StyledStrings` and
 `JuliaSyntax` standard libraries to provide a simple utility for applying syntax
@@ -27,3 +25,10 @@ julia> Base.annotations(ans)
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((47:47, :face, :julia_rainbow_paren_2))
  @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((48:48, :face, :julia_rainbow_paren_1))
 ```
+
+
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://JuliaLang.github.io/JuliaSyntaxHighlighting.jl/dev/
+
+[ci-img]: https://github.com/JuliaLang/JuliaSyntaxHighlighting.jl/actions/workflows/ci.yml/badge.svg?branch=main
+[ci-url]: https://github.com/JuliaLang/JuliaSyntaxHighlighting.jl/actions/workflows/ci.yml?query=branch%3Amain
