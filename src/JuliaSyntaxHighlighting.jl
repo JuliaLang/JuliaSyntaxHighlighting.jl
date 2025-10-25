@@ -89,7 +89,7 @@ const HIGHLIGHT_FACES = [
     :julia_char => Face(inherit=:julia_string),
     :julia_char_delim => Face(inherit=:julia_string_delim),
     :julia_number => Face(),
-    :julia_bool => Face(),
+    :julia_bool => Face(inherit=:julia_number),
     :julia_funcall => Face(),
     :julia_funcdef => Face(inherit=:julia_funcall),
     :julia_broadcast => Face(inherit=:julia_operator),
