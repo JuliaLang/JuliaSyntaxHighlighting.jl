@@ -171,30 +171,30 @@ end
 
 """
     _hl_annotations(content::AbstractString, ast::GreenNode)
-      -> Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Any}}
+      -> Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}}
 
 Generate a list of annotations for the given `content` and `ast`.
 
-Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Any}`,
+Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}`,
 where the region indexes into `content` and the value is a `julia_*` face name.
 
 This is a small wrapper around [`_hl_annotations!`](@ref) for convenience.
 """
 function _hl_annotations(content::AbstractString, ast::GreenNode; syntax_errors::Bool = false)
-    highlights = Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Any}}()
+    highlights = Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}}()
     ctx = HighlightContext(content, zero(UInt), ast, ParenDepthCounter())
     _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx; syntax_errors)
     highlights
 end
 
 """
-    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Any}},
+    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}},
                      lineage::GreenLineage, ctx::HighlightContext)
 
 Populate `highlights` with annotations for the given `lineage` and `ctx`,
 where `lineage` is expected to be consistent with `ctx.offset` and `ctx.lnode`.
 """
-function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Any}},
+function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}},
                           lineage::GreenLineage, ctx::HighlightContext; syntax_errors::Bool = false)
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
@@ -250,7 +250,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         else
             literal_typedecl = findfirst(
                 c -> kind(c) == K"::" && JuliaSyntax.is_trivia(c),
-                something(children(node), GreenNode[]))
+                something(children(node), typeof(node)[]))
             if !isnothing(literal_typedecl)
                 shift = sum(c ->Int(span(c)), node[1:literal_typedecl])
                 region = first(region)+shift:last(region)
@@ -296,7 +296,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         else
             literal_where = findfirst(
                 c -> kind(c) == K"where" && JuliaSyntax.is_trivia(c),
-                something(children(node), GreenNode[]))
+                something(children(node), typeof(node)[]))
             if !isnothing(literal_where)
                 shift = sum(c ->Int(span(c)), node[1:literal_where])
                 region = first(region)+shift:last(region)
@@ -323,7 +323,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             cargs = children(first(cargs))
         end
         argoffset, arg1 = 0, nothing
-        for arg in something(cargs, GreenNode[])
+        for arg in something(cargs, typeof(node)[])
             argoffset += span(arg)
             if !JuliaSyntax.is_trivia(arg)
                 arg1 = arg
@@ -379,7 +379,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     end
     numchildren(node) == 0 && return
     lnode = node
-    for child in something(children(node), GreenNode[])
+    for child in something(children(node), typeof(node)[])
         cctx = HighlightContext(content, offset, lnode, pdepths)
         _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
         lnode = child
