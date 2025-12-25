@@ -14,16 +14,16 @@ julia> highlight("String(reinterpret(UInt8, [0x293a2061696c756a]))")
 "String(reinterpret(UInt8, [0x293a2061696c756a]))" # Colored in the REPL
 
 julia> Base.annotations(ans)
-9-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:6, :face, :julia_funcall))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_rainbow_paren_1))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:18, :face, :julia_funcall))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((19:19, :face, :julia_rainbow_paren_2))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((27:27, :face, :julia_rainbow_bracket_1))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((28:45, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((46:46, :face, :julia_rainbow_bracket_1))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((47:47, :face, :julia_rainbow_paren_2))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((48:48, :face, :julia_rainbow_paren_1))
+9-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value::StyledStrings.Face}}:
+ (region = 1:6, label = :face, value = StyledStrings.face"julia_funcall")
+ (region = 7:7, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
+ (region = 8:18, label = :face, value = StyledStrings.face"julia_funcall")
+ (region = 19:19, label = :face, value = StyledStrings.face"julia_rainbow_paren_2")
+ (region = 27:27, label = :face, value = StyledStrings.face"julia_rainbow_bracket_1")
+ (region = 28:45, label = :face, value = StyledStrings.face"julia_number")
+ (region = 46:46, label = :face, value = StyledStrings.face"julia_rainbow_bracket_1")
+ (region = 47:47, label = :face, value = StyledStrings.face"julia_rainbow_paren_2")
+ (region = 48:48, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
 ```
 
 
