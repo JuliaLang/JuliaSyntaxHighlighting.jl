@@ -15,9 +15,11 @@ JuliaSyntaxHighlighting.highlight!
 ## [Faces](@id stdlib-jsh-faces)
 
 The `highlight`/`highlight!` methods work by applying custom faces to Julia
-code. As part of the standard library, these faces use privileged face names, of
-the form `julia_*`. These can be re-used in other packages, and customised with
-`faces.toml` configuration.
+code. These faces make up the palette of `JuliaSyntaxHighlighting`, so other
+packages can use them after `@usepalette JuliaSyntaxHighlighting`, or as
+`face"JuliaSyntaxHighlighting.keyword"` and so on. As part of the standard
+library, they are registered under privileged names of the form `julia_*`, which
+is how they are customised in `faces.toml`.
 
 !!! warning "Unstable faces"
     The particular faces used by `JuliaSyntaxHighlighting` are liable to change
