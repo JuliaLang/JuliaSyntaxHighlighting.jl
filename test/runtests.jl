@@ -1,7 +1,9 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
-using JuliaSyntaxHighlighting: highlight, highlight!
+using JuliaSyntaxHighlighting: JuliaSyntaxHighlighting, highlight, highlight!
 using Test
+
+@test isempty(Test.detect_closure_boxes(JuliaSyntaxHighlighting))
 
 # We could go to the effort of testing each individual highlight face,
 # however here we're aiming for the much lower bar of ensuring that
