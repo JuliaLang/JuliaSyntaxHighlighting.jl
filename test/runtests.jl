@@ -30,6 +30,16 @@ astr_sum1to8 = Base.AnnotatedString("sum(1:8)")
 # Check for string indexing issues
 @test Base.annotations(highlight(":π")) |> first |> first == 1:3
 
+# Test that labeled break/continue labels are highlighted, but not the
+# (possibly juxtaposed) break value
+labeled_break = highlight("@label x begin\n  break x i * 3\nend")
+anns = Base.annotations(labeled_break)
+@test any(a -> a.region == 24:24 && a.value == :julia_label, anns)
+@test all(a -> a.value != :julia_label || a.region == 24:24, anns)
+@test any(a -> a.region == 10:14 && a.value == :julia_label,
+          Base.annotations(highlight("continue outer")))
+@test all(a -> a.value != :julia_label, Base.annotations(highlight("break")))
+
 # Test unpaired parentheses (issue #17)
 # Test consecutive unpaired closing parens and that depth counter resets properly
 reset_after_unpaired = highlight("(()))) ()")

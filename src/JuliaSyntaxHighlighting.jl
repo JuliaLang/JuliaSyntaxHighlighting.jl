@@ -99,6 +99,7 @@ const HIGHLIGHT_FACES = [
     :julia_comparator => Face(inherit=:julia_operator),
     :julia_assignment => Face(),
     :julia_keyword => Face(foreground=:red),
+    :julia_label => Face(inherit=:julia_keyword),
     :julia_parentheses => Face(),
     :julia_unpaired_parentheses => Face(inherit=[:julia_error, :julia_parentheses]),
     :julia_error => Face(background=:red),
@@ -288,6 +289,18 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         end
     elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
         :julia_assignment
+    elseif nkind in (K"break", K"continue") && numchildren(node) > 0
+        # The label of a labeled `break`/`continue` is its first non-trivia
+        # child. Highlight it so it stands apart from a juxtaposed value
+        # expression, as in `break label val`.
+        label = findfirst(
+            c -> !JuliaSyntax.is_trivia(c),
+            something(children(node), typeof(node)[]))
+        if !isnothing(label) && kind(node[label]) == K"Identifier"
+            shift = sum(c -> Int(span(c)), node[1:label-1], init=0)
+            region = first(region)+shift:first(region)+shift+Int(span(node[label]))-1
+            :julia_label
+        end
     elseif (JuliaSyntax.is_keyword(nkind) ||nkind == K"->" ) && JuliaSyntax.is_trivia(node)
         :julia_keyword
     elseif nkind == K"where"
