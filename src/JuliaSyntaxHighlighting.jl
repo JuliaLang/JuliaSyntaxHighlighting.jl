@@ -58,6 +58,17 @@ if isdefined(JuliaSyntax, :_kind_str_to_int) && isdefined(JuliaSyntax, :_kind_in
     end
 end
 
+# Most operators no longer have a dedicated kind (they share `K"Operator"`); add
+# the single-character operators from the precedence table and the multi-character
+# operators handled directly in the lexer, so they're still recognised here.
+if isdefined(JuliaSyntax, :generic_operators_by_level)
+    for chars in values(JuliaSyntax.generic_operators_by_level), c in chars
+        push!(OPERATOR_KINDS, string(c))
+    end
+end
+union!(OPERATOR_KINDS, ("==", "===", "!=", "!==", "<=", ">=",
+                        "<<", ">>", ">>>", "//", "|>", "<|", "=>"))
+
 """
     BUILTIN_FUNCTIONS
 
@@ -279,7 +290,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     elseif JuliaSyntax.is_number(nkind)
         :julia_number
     elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
-        if JuliaSyntax.is_syntactic_assignment(nkind)
+        if nkind in (K"=", K".=", K":=", K"op=", K".op=")
             ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
         else # updating for <op>=
             push!(highlights, (firstindex(content)+offset:span(node)+offset-1, :face, :julia_operator))
@@ -307,7 +318,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         :julia_keyword
     elseif nkind == K"isa"
         :julia_builtin
-    elseif nkind in (K"&&", K"||", K"<:", K"===") && JuliaSyntax.is_trivia(node)
+    elseif (nkind in (K"&&", K"||", K"<:") || regionstr == "===") && JuliaSyntax.is_trivia(node)
         :julia_builtin
     elseif JuliaSyntax.is_prec_comparison(nkind) && JuliaSyntax.is_trivia(node);
         :julia_comparator
