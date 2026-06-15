@@ -27,6 +27,16 @@ astr_sum1to8 = Base.AnnotatedString("sum(1:8)")
 @test highlight!(astr_sum1to8) == sum1to8_highlighted
 @test astr_sum1to8 == sum1to8_highlighted
 
+# Ensure generic operators inside parse error nodes do not crash highlighting.
+@test any(a -> a.region == 5:5 && a.value == :julia_operator,
+          Base.annotations(highlight("1 2 / 3")))
+@test any(a -> a.region == 5:6 && a.value == :julia_operator,
+          Base.annotations(highlight("1 2 == 3")))
+@test any(a -> a.region == 3:5 && a.value == :julia_operator,
+          Base.annotations(highlight("1 <-- 2")))
+@test any(a -> a.region == 3:6 && a.value == :julia_operator,
+          Base.annotations(highlight("1 <--> 2")))
+
 # Check for string indexing issues
 @test Base.annotations(highlight(":π")) |> first |> first == 1:3
 

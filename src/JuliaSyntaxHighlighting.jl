@@ -67,7 +67,8 @@ if isdefined(JuliaSyntax, :generic_operators_by_level)
     end
 end
 union!(OPERATOR_KINDS, ("==", "===", "!=", "!==", "<=", ">=",
-                        "<<", ">>", ">>>", "//", "|>", "<|", "=>"))
+                        "<<", ">>", ">>>", "//", "|>", "<|", "=>",
+                        "<--", "<-->"))
 
 """
     BUILTIN_FUNCTIONS
@@ -333,7 +334,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         :julia_builtin
     elseif (nkind in (K"&&", K"||", K"<:") || regionstr == "===") && JuliaSyntax.is_trivia(node)
         :julia_builtin
-    elseif JuliaSyntax.is_prec_comparison(nkind) && JuliaSyntax.is_trivia(node);
+    elseif JuliaSyntax.is_prec_comparison(node) && JuliaSyntax.is_trivia(node);
         :julia_comparator
     elseif isplainoperator(node, pnode)
         :julia_operator
