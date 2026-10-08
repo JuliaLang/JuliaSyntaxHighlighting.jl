@@ -2,21 +2,21 @@ module JuliaSyntaxHighlighting
 
 import Base: JuliaSyntax, AnnotatedString, annotate!
 import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags, children, numchildren, span
-using StyledStrings: Face, addface!
+using StyledStrings: Face, @face_str as @F_str, @defpalette, @registerpalette
 
 public highlight, highlight!
 
 """
     MAX_PAREN_HIGHLIGHT_DEPTH
 
-The number of `julia_rainbow_{paren,bracket_curly}_{n}` faces
-from [`HIGHLIGHT_FACES`](@ref) that can be cycled through.
+The number of `julia_rainbow_{paren,bracket,curly}_{n}` faces
+that can be cycled through.
 """
 const MAX_PAREN_HIGHLIGHT_DEPTH = 6
 """
     RAINBOW_DELIMITERS_ENABLED
 
-Whether to use `julia_rainbow_{paren,bracket_curly}_{n}` faces for
+Whether to use `julia_rainbow_{paren,bracket,curly}_{n}` faces for
 delimitors/parentheses (`()`, `[]`, `{}`) as opposed to just using
 `julia_parentheses`.
 """
@@ -78,65 +78,58 @@ A set of identifiers that are defined in `Core` and a `Core.Builtin`.
 const BUILTIN_FUNCTIONS =
     Set(push!([n for n in names(Base) if getglobal(Base, n) isa Core.Builtin], :ccall))
 
-"""
-    HIGHLIGHT_FACES
-
-A list of `name => Face(...)` pairs that define the faces in
-`JuliaSyntaxHighlighting`. These are registered during module initialisation.
-"""
-const HIGHLIGHT_FACES = [
-    # Julia syntax highlighting faces
-    :julia_macro => Face(),
-    :julia_symbol => Face(),
-    :julia_singleton_identifier => Face(inherit=:julia_symbol),
-    :julia_type => Face(),
-    :julia_typedec => Face(inherit=:julia_operator),
-    :julia_comment => Face(foreground=:grey),
-    :julia_string => Face(foreground=:green),
-    :julia_regex => Face(),
-    :julia_backslash_literal => Face(),
-    :julia_string_delim => Face(foreground=:julia_string),
-    :julia_cmd => Face(),
-    :julia_cmd_delim => Face(),
-    :julia_char => Face(inherit=:julia_string),
-    :julia_char_delim => Face(inherit=:julia_string_delim),
-    :julia_number => Face(),
-    :julia_bool => Face(inherit=:julia_number),
-    :julia_funcall => Face(),
-    :julia_funcdef => Face(inherit=:julia_funcall),
-    :julia_broadcast => Face(inherit=:julia_operator),
-    :julia_builtin => Face(),
-    :julia_operator => Face(),
-    :julia_opassignment => Face(inherit=:julia_assignment),
-    :julia_comparator => Face(inherit=:julia_operator),
-    :julia_assignment => Face(),
-    :julia_keyword => Face(foreground=:red),
-    :julia_label => Face(inherit=:julia_keyword),
-    :julia_parentheses => Face(),
-    :julia_unpaired_parentheses => Face(inherit=[:julia_error, :julia_parentheses]),
-    :julia_error => Face(background=:red),
+@defpalette namespace=:julia begin
+    var"macro" = Face()
+    symbol = Face()
+    singleton_identifier = Face(inherit = symbol)
+    type = Face()
+    typedec = Face(inherit = operator)
+    comment = Face(foreground = grey)
+    string = Face(foreground = green)
+    regex = Face()
+    backslash_literal = Face()
+    string_delim = Face(foreground = string)
+    cmd = Face()
+    cmd_delim = Face()
+    char = Face(inherit = string)
+    char_delim = Face(inherit = string_delim)
+    number = Face()
+    bool = Face(inherit = number)
+    funcall = Face()
+    funcdef = Face(inherit = funcall)
+    broadcast = Face(inherit = operator)
+    builtin = Face()
+    operator = Face()
+    opassignment = Face(inherit = assignment)
+    comparator = Face(inherit = operator)
+    assignment = Face()
+    keyword = Face(foreground = red)
+    label = Face(inherit = keyword)
+    parentheses = Face()
+    unpaired_parentheses = Face(inherit = [error, parentheses])
+    error = Face(background = red)
     # Rainbow delimitors (1-6, (), [], and {})
-    :julia_rainbow_paren_1 => Face(inherit=:julia_parentheses),
-    :julia_rainbow_paren_2 => Face(inherit=:julia_parentheses),
-    :julia_rainbow_paren_3 => Face(inherit=:julia_parentheses),
-    :julia_rainbow_paren_4 => Face(inherit=:julia_rainbow_paren_1),
-    :julia_rainbow_paren_5 => Face(inherit=:julia_rainbow_paren_2),
-    :julia_rainbow_paren_6 => Face(inherit=:julia_rainbow_paren_3),
-    :julia_rainbow_bracket_1 => Face(inherit=:julia_parentheses),
-    :julia_rainbow_bracket_2 => Face(inherit=:julia_parentheses),
-    :julia_rainbow_bracket_3 => Face(inherit=:julia_rainbow_bracket_1),
-    :julia_rainbow_bracket_4 => Face(inherit=:julia_rainbow_bracket_2),
-    :julia_rainbow_bracket_5 => Face(inherit=:julia_rainbow_bracket_1),
-    :julia_rainbow_bracket_6 => Face(inherit=:julia_rainbow_bracket_2),
-    :julia_rainbow_curly_1 => Face(inherit=:julia_parentheses),
-    :julia_rainbow_curly_2 => Face(inherit=:julia_parentheses),
-    :julia_rainbow_curly_3 => Face(inherit=:julia_rainbow_curly_1),
-    :julia_rainbow_curly_4 => Face(inherit=:julia_rainbow_curly_2),
-    :julia_rainbow_curly_5 => Face(inherit=:julia_rainbow_curly_1),
-    :julia_rainbow_curly_6 => Face(inherit=:julia_rainbow_curly_2),
-]
+    rainbow_paren_1 = Face(inherit = parentheses)
+    rainbow_paren_2 = Face(inherit = parentheses)
+    rainbow_paren_3 = Face(inherit = parentheses)
+    rainbow_paren_4 = Face(inherit = rainbow_paren_1)
+    rainbow_paren_5 = Face(inherit = rainbow_paren_2)
+    rainbow_paren_6 = Face(inherit = rainbow_paren_3)
+    rainbow_bracket_1 = Face(inherit = parentheses)
+    rainbow_bracket_2 = Face(inherit = parentheses)
+    rainbow_bracket_3 = Face(inherit = rainbow_bracket_1)
+    rainbow_bracket_4 = Face(inherit = rainbow_bracket_2)
+    rainbow_bracket_5 = Face(inherit = rainbow_bracket_1)
+    rainbow_bracket_6 = Face(inherit = rainbow_bracket_2)
+    rainbow_curly_1 = Face(inherit = parentheses)
+    rainbow_curly_2 = Face(inherit = parentheses)
+    rainbow_curly_3 = Face(inherit = rainbow_curly_1)
+    rainbow_curly_4 = Face(inherit = rainbow_curly_2)
+    rainbow_curly_5 = Face(inherit = rainbow_curly_1)
+    rainbow_curly_6 = Face(inherit = rainbow_curly_2)
+end
 
-__init__() = foreach(addface!, HIGHLIGHT_FACES)
+__init__() = @registerpalette
 
 """
     paren_type(k::Kind) -> (Int, Symbol)
@@ -161,6 +154,15 @@ function paren_type(k::Kind)
     end
 end
 
+# Indexed by `paren_type` and the depth, from 1 to `MAX_PAREN_HIGHLIGHT_DEPTH`
+const RAINBOW_FACES = (
+    paren = (F"rainbow_paren_1", F"rainbow_paren_2", F"rainbow_paren_3",
+             F"rainbow_paren_4", F"rainbow_paren_5", F"rainbow_paren_6"),
+    bracket = (F"rainbow_bracket_1", F"rainbow_bracket_2", F"rainbow_bracket_3",
+               F"rainbow_bracket_4", F"rainbow_bracket_5", F"rainbow_bracket_6"),
+    curly = (F"rainbow_curly_1", F"rainbow_curly_2", F"rainbow_curly_3",
+             F"rainbow_curly_4", F"rainbow_curly_5", F"rainbow_curly_6"))
+
 mutable struct ParenDepthCounter
     paren::Int
     bracket::Int
@@ -184,30 +186,30 @@ end
 
 """
     _hl_annotations(content::AbstractString, ast::GreenNode)
-      -> Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}}
+      -> Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Face}}
 
 Generate a list of annotations for the given `content` and `ast`.
 
-Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}`,
+Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Face}`,
 where the region indexes into `content` and the value is a `julia_*` face name.
 
 This is a small wrapper around [`_hl_annotations!`](@ref) for convenience.
 """
 function _hl_annotations(content::AbstractString, ast::GreenNode; syntax_errors::Bool = false)
-    highlights = Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}}()
+    highlights = Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Face}}()
     ctx = HighlightContext(content, zero(UInt), ast, ParenDepthCounter())
     _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx; syntax_errors)
     highlights
 end
 
 """
-    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}},
+    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Face}},
                      lineage::GreenLineage, ctx::HighlightContext)
 
 Populate `highlights` with annotations for the given `lineage` and `ctx`,
 where `lineage` is expected to be consistent with `ctx.offset` and `ctx.lnode`.
 """
-function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Symbol}},
+function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Face}},
                           lineage::GreenLineage, ctx::HighlightContext; syntax_errors::Bool = false)
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
@@ -229,37 +231,37 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         (JuliaSyntax.is_trivia(node) || JuliaSyntax.is_leaf(node))
     face = if nkind == K"Identifier"
         if pkind == K"curly" && kind(lnode) != K"call" && !(kind(lnode) == K"curly" && ppkind == K"call")
-            :julia_type
+            F"type"
         elseif pkind == kind(lnode) == K"call" && ppkind == K"function"
-            :julia_funcdef
+            F"funcdef"
         elseif pkind == K"op=" && kind(lnode) != K"op=" &&
             regionstr in OPERATOR_KINDS
-            :julia_opassignment
+            F"opassignment"
         elseif pkind ∈ (K"call", K"dotcall") && regionstr in OPERATOR_KINDS
             # HACK: The first operator isn't a `K"<op>"` for /some/ reason in
             # JuliaSyntax 1.0.
-            :julia_operator
+            F"operator"
         elseif pkind == K"comparison" && regionstr in OPERATOR_KINDS
             # HACK: The same as above.
-            :julia_comparator
+            F"comparator"
         else
             name = Symbol(regionstr)
             if name in SINGLETON_IDENTIFIERS
-                :julia_singleton_identifier
+                F"singleton_identifier"
             elseif name == :NaN
-                :julia_number
+                F"number"
             end
         end
     elseif nkind == K"macrocall" && kind(node[1]) == K"macro_name"
         region = first(region):first(region)+span(node[1])-1
-        :julia_macro
+        F"macro"
     elseif nkind == K"StrMacroName"
-        :julia_macro
+        F"macro"
     elseif nkind == K"CmdMacroName"
-        :julia_macro
+        F"macro"
     elseif nkind == K"::"
         if JuliaSyntax.is_trivia(node) || numchildren(node) == 0
-            :julia_typedec
+            F"typedec"
         else
             literal_typedecl = findfirst(
                 c -> kind(c) == K"::" && JuliaSyntax.is_trivia(c),
@@ -267,40 +269,40 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             if !isnothing(literal_typedecl)
                 shift = sum(c ->Int(span(c)), node[1:literal_typedecl])
                 region = first(region)+shift:last(region)
-                :julia_type
+                F"type"
             end
         end
     elseif nkind == K"quote" && numchildren(node) == 2 &&
         kind(node[1]) == K":" && kind(node[2]) == K"Identifier"
-        :julia_symbol
+        F"symbol"
     elseif nkind == K"Comment"
-        :julia_comment
+        F"comment"
     elseif nkind == K"String"
-        :julia_string
+        F"string"
     elseif JuliaSyntax.is_string_delim(node)
-        :julia_string_delim
+        F"string_delim"
     elseif nkind == K"CmdString"
-        :julia_cmd
+        F"cmd"
     elseif nkind == K"`" || nkind == K"```"
-        :julia_cmd_delim
+        F"cmd_delim"
     elseif nkind == K"Char"
-        :julia_char
+        F"char"
     elseif nkind == K"'" && pkind == K"char"
-        :julia_char_delim
+        F"char_delim"
     elseif nkind == K"Bool"
-        :julia_bool
+        F"bool"
     elseif JuliaSyntax.is_number(nkind)
-        :julia_number
+        F"number"
     elseif JuliaSyntax.is_prec_assignment(nkind) && JuliaSyntax.is_trivia(node);
         if nkind in (K"=", K".=", K":=", K"op=", K".op=")
-            ifelse(ppkind == K"for", :julia_keyword, :julia_assignment)
+            ifelse(ppkind == K"for", F"keyword", F"assignment")
         else # updating for <op>=
-            push!(highlights, (firstindex(content)+offset:span(node)+offset-1, :face, :julia_operator))
-            push!(highlights, (span(node)+offset:span(node)+offset, :face, :julia_assignment))
+            push!(highlights, (firstindex(content)+offset:span(node)+offset-1, :face, F"operator"))
+            push!(highlights, (span(node)+offset:span(node)+offset, :face, F"assignment"))
             nothing
         end
     elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
-        :julia_assignment
+        F"assignment"
     elseif nkind in (K"break", K"continue") && numchildren(node) > 0
         # The label of a labeled `break`/`continue` is its first non-trivia
         # child. Highlight it so it stands apart from a juxtaposed value
@@ -311,13 +313,13 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         if !isnothing(label) && kind(node[label]) == K"Identifier"
             shift = sum(c -> Int(span(c)), node[1:label-1], init=0)
             region = first(region)+shift:first(region)+shift+Int(span(node[label]))-1
-            :julia_label
+            F"label"
         end
     elseif (JuliaSyntax.is_keyword(nkind) ||nkind == K"->" ) && JuliaSyntax.is_trivia(node)
-        :julia_keyword
+        F"keyword"
     elseif nkind == K"where"
         if JuliaSyntax.is_trivia(node) || numchildren(node) == 0
-            :julia_keyword
+            F"keyword"
         else
             literal_where = findfirst(
                 c -> kind(c) == K"where" && JuliaSyntax.is_trivia(c),
@@ -325,23 +327,23 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             if !isnothing(literal_where)
                 shift = sum(c ->Int(span(c)), node[1:literal_where])
                 region = first(region)+shift:last(region)
-                :julia_type
+                F"type"
             end
         end
     elseif nkind == K"in" && pkind == K"in"
-        :julia_keyword
+        F"keyword"
     elseif nkind == K"isa"
-        :julia_builtin
+        F"builtin"
     elseif (nkind in (K"&&", K"||", K"<:") || regionstr == "===") && JuliaSyntax.is_trivia(node)
-        :julia_builtin
+        F"builtin"
     elseif JuliaSyntax.is_prec_comparison(node) && JuliaSyntax.is_trivia(node);
-        :julia_comparator
+        F"comparator"
     elseif isplainoperator(node, pnode)
-        :julia_operator
+        F"operator"
     elseif nkind == K"..." && JuliaSyntax.is_trivia(node)
-        :julia_operator
+        F"operator"
     elseif nkind == K"." && JuliaSyntax.is_trivia(node) && kind(pnode) == K"dotcall";
-        :julia_broadcast
+        F"broadcast"
     elseif nkind in (K"call", K"dotcall") && JuliaSyntax.is_prefix_call(node)
         cargs = children(node)
         if !isempty(cargs) && kind(first(cargs)) == K"curly"
@@ -360,14 +362,14 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         elseif kind(arg1) == K"Identifier" && pkind != K"function"
             region = first(region):first(region)+argoffset-1
             name = Symbol(view(regionstr, 1:argoffset))
-            ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
+            ifelse(name in BUILTIN_FUNCTIONS, F"builtin", F"funcall")
         elseif kind(arg1) == K"." && numchildren(arg1) == 3 && kind(arg1[end]) == K"Identifier"
             region = first(region)+argoffset-span(arg1[end]):first(region)+argoffset-1
             name = Symbol(view(regionstr, (1+argoffset-span(arg1[end])):argoffset))
-            ifelse(name in BUILTIN_FUNCTIONS, :julia_builtin, :julia_funcall)
+            ifelse(name in BUILTIN_FUNCTIONS, F"builtin", F"funcall")
         end
     elseif syntax_errors && JuliaSyntax.is_error(nkind)
-        :julia_error
+        F"error"
     elseif ((depthchange, ptype) = paren_type(nkind)) |> last != :none
         depthref = getfield(pdepths, ptype)
         pdepth = if depthchange > 0
@@ -378,15 +380,15 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             depth0
         end
         if pdepth <= 0 && UNMATCHED_DELIMITERS_ENABLED[]
-            :julia_unpaired_parentheses
+            F"unpaired_parentheses"
         elseif !RAINBOW_DELIMITERS_ENABLED[]
-            :julia_parentheses
+            F"parentheses"
         else
             displaydepth = mod1(pdepth, MAX_PAREN_HIGHLIGHT_DEPTH)
-            Symbol("julia_rainbow_$(ptype)_$(displaydepth)")
+            RAINBOW_FACES[ptype][displaydepth]
         end
     end
-    !isnothing(face) &&
+    !isnothing(face) && !isempty(region) && # An error node can be empty
         push!(highlights, (region, :face, face))
     if nkind == K"Comment"
         for match in eachmatch(
@@ -394,19 +396,19 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             regionstr)
             code = first(match.captures)
             push!(highlights, (firstindex(content)+offset+code.offset:firstindex(content)+offset+code.offset+code.ncodeunits-1,
-                               :face, :code))
+                               :face, F"code"))
         end
     elseif nkind == K"String"
         for match in eachmatch(r"\\.", regionstr)
             push!(highlights, (firstindex(content)+offset+match.offset-1:firstindex(content)+offset+match.offset+ncodeunits(match.match)-2,
-                               :face, :julia_backslash_literal))
+                               :face, F"backslash_literal"))
         end
     end
     numchildren(node) == 0 && return
     lnode = node
     for child in something(children(node), typeof(node)[])
         cctx = HighlightContext(content, offset, lnode, pdepths)
-        _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
+        _hl_annotations!(highlights, GreenLineage(child, lineage), cctx; syntax_errors)
         lnode = child
         offset += span(child)
     end
@@ -415,7 +417,7 @@ end
 """
     highlight(content::Union{AbstractString, IO},
               ast::JuliaSyntax.GreenNode = <parsed content>;
-              syntax_errors::Bool = false) -> AnnotatedString{String}
+              syntax_errors::Bool = false) -> AnnotatedString{String, Face}
 
 Apply syntax highlighting to `content` using `JuliaSyntax`.
 
@@ -436,13 +438,13 @@ julia> JuliaSyntaxHighlighting.highlight("sum(1:8)")
 "sum(1:8)"
 
 julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
-6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
+6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value::StyledStrings.Face}}:
+ (region = 1:3, label = :face, value = StyledStrings.face"julia_funcall")
+ (region = 4:4, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
+ (region = 5:5, label = :face, value = StyledStrings.face"julia_number")
+ (region = 6:6, label = :face, value = StyledStrings.face"julia_operator")
+ (region = 7:7, label = :face, value = StyledStrings.face"julia_number")
+ (region = 8:8, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
 ```
 """
 function highlight end
@@ -460,15 +462,14 @@ highlight(str::AbstractString, ast::GreenNode; syntax_errors::Bool = false) =
     AnnotatedString(str, _hl_annotations(str, ast; syntax_errors))
 
 """
-    highlight!(content::Union{AnnotatedString, SubString{AnnotatedString}},
-               ast::JuliaSyntax.GreenNode = <parsed content>;
+    highlight!(content::Union{AnnotatedString, SubString{<:AnnotatedString}};
                syntax_errors::Bool = false) -> content
 
-Modify `content` by applying syntax highlighting using `JuliaSyntax`.
+Modify `content` by applying syntax highlighting using `JuliaSyntax`. The value type
+of `content` must be able to hold a `Face`.
 
-By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
-`ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
-pre-generated `ast`.
+`content` is parsed with `JuliaSyntax.parseall`, with the `ignore_errors` keyword
+argument set to `true`.
 
 When `syntax_errors` is set, the `julia_error` face is applied to detected syntax errors.
 
@@ -487,44 +488,37 @@ julia> JuliaSyntaxHighlighting.highlight!(str)
 
 julia> Base.annotations(str)
 6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, :julia_funcall))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, :julia_rainbow_paren_1))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, :julia_operator))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, :julia_number))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, :julia_rainbow_paren_1))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, StyledStrings.face"julia_funcall"))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, StyledStrings.face"julia_rainbow_paren_1"))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, StyledStrings.face"julia_number"))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, StyledStrings.face"julia_operator"))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, StyledStrings.face"julia_number"))
+ @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, StyledStrings.face"julia_rainbow_paren_1"))
 ```
 """
-function highlight!(str::AnnotatedString; syntax_errors::Bool = false)
+function highlight!(str::AnnotatedString{<:Any, >:Face}; syntax_errors::Bool = false)
     for ann in _hl_annotations(str.string, parseall(GreenNode, str.string, ignore_errors=true); syntax_errors)
         annotate!(str, ann.region, ann.label, ann.value)
     end
     str
 end
 
-@static if isdefined(Base, :unannotate)
-    # This function uses SubString and AnnotatedString internals, but for current
-    # and future versions, Base.unannotate is defined, and so this cannot break
-    # in the future.
-    const unannotate = Base.unannotate
-else
-    function unannotate(s::SubString{AnnotatedString{S}}) where S
-        SubString{S}(s.string.string, s.offset, s.ncodeunits, Val(:noshift))
-    end
-end
-
-function highlight!(str::SubString{AnnotatedString{S}}; syntax_errors::Bool = false) where {S}
-    plainstr = unannotate(str)
+function highlight!(str::SubString{<:AnnotatedString{S, V}}; syntax_errors::Bool = false) where {S, V >: Face}
+    plainstr = Base.unannotate(str)
     for ann in _hl_annotations(plainstr, parseall(GreenNode, plainstr, ignore_errors=true); syntax_errors)
         annotate!(str, ann.region, ann.label, ann.value)
     end
     str
 end
 
+highlight!(::Union{AnnotatedString{S, V}, SubString{<:AnnotatedString{S, V}}}; syntax_errors::Bool = false) where {S, V} =
+    throw(ArgumentError("Cannot highlight a string whose annotation values are `$V`, as they cannot hold a `Face`. \
+                         Build the string with a value type that can, such as `Union{$V, Face}` or `Any`."))
+
 if Base.generating_output()
     highlight(read(@__FILE__, String))
-    highlight!(Base.AnnotatedString("1 + 2"))
-    highlight!(Base.AnnotatedString("1 + 2")[1:5])
+    highlight!(Base.AnnotatedString{String, Face}("1 + 2"))
+    highlight!(Base.AnnotatedString{String, Face}("1 + 2")[1:5])
 end
 
 end
