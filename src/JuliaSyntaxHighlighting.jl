@@ -462,16 +462,14 @@ highlight(str::AbstractString, ast::GreenNode; syntax_errors::Bool = false) =
     AnnotatedString(str, _hl_annotations(str, ast; syntax_errors))
 
 """
-    highlight!(content::Union{AnnotatedString, SubString{<:AnnotatedString}},
-               ast::JuliaSyntax.GreenNode = <parsed content>;
+    highlight!(content::Union{AnnotatedString, SubString{<:AnnotatedString}};
                syntax_errors::Bool = false) -> content
 
 Modify `content` by applying syntax highlighting using `JuliaSyntax`. The value type
 of `content` must be able to hold a `Face`.
 
-By default, `JuliaSyntax.parseall` is used to generate to `ast` with the
-`ignore_errors` keyword argument set to `true`. Alternatively, one may provide a
-pre-generated `ast`.
+`content` is parsed with `JuliaSyntax.parseall`, with the `ignore_errors` keyword
+argument set to `true`.
 
 When `syntax_errors` is set, the `julia_error` face is applied to detected syntax errors.
 
