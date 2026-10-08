@@ -27,46 +27,49 @@ is how they are customised in `faces.toml`.
     over time, changes should become less and less frequent though.
 
 The current set of faces, and their default values are as follows:
-- `julia_macro`: magenta
-- `julia_symbol`: magenta
+- `julia_macro`: unstyled
+- `julia_symbol`: unstyled
 - `julia_singleton_identifier`: inherits from `julia_symbol`
-- `julia_type`: yellow
-- `julia_typedec`: bright blue
+- `julia_type`: unstyled
+- `julia_typedec`: inherits from `julia_operator`
 - `julia_comment`: grey
 - `julia_string`: green
-- `julia_regex`: inherits from `julia_string`
-- `julia_backslash_literal`: magenta, inherits from `julia_string`
-- `julia_string_delim`: bright green
-- `julia_cmdstring`: inherits from `julia_string`
+- `julia_regex`: unstyled
+- `julia_backslash_literal`: unstyled
+- `julia_string_delim`: the foreground of `julia_string`
+- `julia_cmd`: unstyled
+- `julia_cmd_delim`: unstyled
 - `julia_char`: inherits from `julia_string`
 - `julia_char_delim`: inherits from `julia_string_delim`
-- `julia_number`: bright magenta
+- `julia_number`: unstyled
 - `julia_bool`: inherits from `julia_number`
-- `julia_funcall`: cyan
-- `julia_funcdef`: cyan
-- `julia_broadcast`: bright blue, bold
-- `julia_builtin`: bright blue
-- `julia_operator`: blue
+- `julia_funcall`: unstyled
+- `julia_funcdef`: inherits from `julia_funcall`
+- `julia_broadcast`: inherits from `julia_operator`
+- `julia_builtin`: unstyled
+- `julia_operator`: unstyled
+- `julia_opassignment`: inherits from `julia_assignment`
 - `julia_comparator`: inherits from `julia_operator`
-- `julia_assignment`: bright red
+- `julia_assignment`: unstyled
 - `julia_keyword`: red
+- `julia_label`: inherits from `julia_keyword`
 - `julia_parentheses`: unstyled
-- `julia_unpaired_parentheses`: inherit from `julia_error` and `julia_parentheses`
+- `julia_unpaired_parentheses`: inherits from `julia_error` and `julia_parentheses`
 - `julia_error`: red background
-- `julia_rainbow_paren_1`: bright green, inherits from `julia_parentheses`
-- `julia_rainbow_paren_2`: bright blue, inherits from `julia_parentheses`
-- `julia_rainbow_paren_3`: bright red, inherits from `julia_parentheses`
+- `julia_rainbow_paren_1`: inherits from `julia_parentheses`
+- `julia_rainbow_paren_2`: inherits from `julia_parentheses`
+- `julia_rainbow_paren_3`: inherits from `julia_parentheses`
 - `julia_rainbow_paren_4`: inherits from `julia_rainbow_paren_1`
 - `julia_rainbow_paren_5`: inherits from `julia_rainbow_paren_2`
 - `julia_rainbow_paren_6`: inherits from `julia_rainbow_paren_3`
-- `julia_rainbow_bracket_1`: blue, inherits from `julia_parentheses`
-- `julia_rainbow_bracket_2`: bright_magenta, inherits from `julia_parentheses`
+- `julia_rainbow_bracket_1`: inherits from `julia_parentheses`
+- `julia_rainbow_bracket_2`: inherits from `julia_parentheses`
 - `julia_rainbow_bracket_3`: inherits from `julia_rainbow_bracket_1`
 - `julia_rainbow_bracket_4`: inherits from `julia_rainbow_bracket_2`
 - `julia_rainbow_bracket_5`: inherits from `julia_rainbow_bracket_1`
 - `julia_rainbow_bracket_6`: inherits from `julia_rainbow_bracket_2`
-- `julia_rainbow_curly_1`: bright yellow, inherits from `julia_parentheses`
-- `julia_rainbow_curly_2`: yellow, inherits from `julia_parentheses`
+- `julia_rainbow_curly_1`: inherits from `julia_parentheses`
+- `julia_rainbow_curly_2`: inherits from `julia_parentheses`
 - `julia_rainbow_curly_3`: inherits from `julia_rainbow_curly_1`
 - `julia_rainbow_curly_4`: inherits from `julia_rainbow_curly_2`
 - `julia_rainbow_curly_5`: inherits from `julia_rainbow_curly_1`
