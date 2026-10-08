@@ -388,7 +388,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
             RAINBOW_FACES[ptype][displaydepth]
         end
     end
-    !isnothing(face) &&
+    !isnothing(face) && !isempty(region) && # An error node can be empty
         push!(highlights, (region, :face, face))
     if nkind == K"Comment"
         for match in eachmatch(
@@ -408,7 +408,7 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
     lnode = node
     for child in something(children(node), typeof(node)[])
         cctx = HighlightContext(content, offset, lnode, pdepths)
-        _hl_annotations!(highlights, GreenLineage(child, lineage), cctx)
+        _hl_annotations!(highlights, GreenLineage(child, lineage), cctx; syntax_errors)
         lnode = child
         offset += span(child)
     end

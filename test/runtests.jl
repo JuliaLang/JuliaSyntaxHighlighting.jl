@@ -48,6 +48,8 @@ end
           Base.annotations(highlight("1 <-- 2")))
 @test any(a -> a.region == 3:6 && a.value === face"julia_operator",
           Base.annotations(highlight("1 <--> 2")))
+@test any(a -> a.region == 2:7 && a.value === face"julia_error",
+          Base.annotations(highlight("1 2 / 3", syntax_errors = true)))
 
 # Check for string indexing issues
 @test Base.annotations(highlight(":π")) |> first |> first == 1:3
