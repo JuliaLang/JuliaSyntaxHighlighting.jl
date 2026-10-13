@@ -2,7 +2,7 @@ module JuliaSyntaxHighlighting
 
 import Base: JuliaSyntax, AnnotatedString, annotate!
 import Base.JuliaSyntax: @K_str, Kind, GreenNode, parseall, kind, flags, children, numchildren, span
-using StyledStrings: Face, @face_str as @F_str, @defpalette, @registerpalette
+using StyledStrings: Face, StyledValue, @face_str as @F_str, @defpalette, @registerpalette
 
 public highlight, highlight!
 
@@ -186,30 +186,30 @@ end
 
 """
     _hl_annotations(content::AbstractString, ast::GreenNode)
-      -> Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Union{String, Face}}}
+      -> Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}}
 
 Generate a list of annotations for the given `content` and `ast`.
 
-Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Union{String, Face}}`,
+Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}`,
 where the region indexes into `content` and the value is a `julia_*` face name.
 
 This is a small wrapper around [`_hl_annotations!`](@ref) for convenience.
 """
 function _hl_annotations(content::AbstractString, ast::GreenNode; syntax_errors::Bool = false)
-    highlights = Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Union{String, Face}}}()
+    highlights = Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}}()
     ctx = HighlightContext(content, zero(UInt), ast, ParenDepthCounter())
     _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx; syntax_errors)
     highlights
 end
 
 """
-    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Union{String, Face}}},
+    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}},
                      lineage::GreenLineage, ctx::HighlightContext)
 
 Populate `highlights` with annotations for the given `lineage` and `ctx`,
 where `lineage` is expected to be consistent with `ctx.offset` and `ctx.lnode`.
 """
-function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::Union{String, Face}}},
+function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}},
                           lineage::GreenLineage, ctx::HighlightContext; syntax_errors::Bool = false)
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
@@ -417,7 +417,7 @@ end
 """
     highlight(content::Union{AbstractString, IO},
               ast::JuliaSyntax.GreenNode = <parsed content>;
-              syntax_errors::Bool = false) -> AnnotatedString{String, Union{String, Face}}
+              syntax_errors::Bool = false) -> AnnotatedString{String, StyledValue}
 
 Apply syntax highlighting to `content` using `JuliaSyntax`.
 
@@ -517,8 +517,8 @@ highlight!(::Union{AnnotatedString{S, V}, SubString{<:AnnotatedString{S, V}}}; s
 
 if Base.generating_output()
     highlight(read(@__FILE__, String))
-    highlight!(Base.AnnotatedString{String, Union{String, Face}}("1 + 2"))
-    highlight!(Base.AnnotatedString{String, Union{String, Face}}("1 + 2")[1:5])
+    highlight!(Base.AnnotatedString{String, StyledValue}("1 + 2"))
+    highlight!(Base.AnnotatedString{String, StyledValue}("1 + 2")[1:5])
 end
 
 end
