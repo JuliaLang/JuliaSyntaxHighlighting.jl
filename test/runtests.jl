@@ -15,16 +15,16 @@ using StyledStrings: @face_str, @usepalette
 # This also avoids testing as much of the particulars of JuliaSyntax.
 
 sum1to8_highlighted = Base.AnnotatedString("sum(1:8)", [
-    (1:3, :face, face"funcall"),
-    (4:4, :face, face"rainbow_paren_1"),
-    (5:5, :face, face"number"),
-    (6:6, :face, face"operator"),
-    (7:7, :face, face"number"),
-    (8:8, :face, face"rainbow_paren_1")
+    (1:3, face"funcall"),
+    (4:4, face"rainbow_paren_1"),
+    (5:5, face"number"),
+    (6:6, face"operator"),
+    (7:7, face"number"),
+    (8:8, face"rainbow_paren_1")
 ])
 
 # Faces are compared by identity, as distinct faces can be equal in structure
-facewise(s) = (String(s), [(a.region, a.label, objectid(a.value)) for a in Base.annotations(s)])
+facewise(s) = (String(s), [(a.region, objectid(a.value)) for a in Base.annotations(s)])
 
 @test facewise(highlight("sum(1:8)")) == facewise(sum1to8_highlighted)
 @test facewise(highlight(IOBuffer("sum(1:8)"))) == facewise(sum1to8_highlighted)
@@ -34,7 +34,7 @@ astr_sum1to8 = Base.AnnotatedString("sum(1:8)")
 @test facewise(highlight!(astr_sum1to8)) == facewise(sum1to8_highlighted)
 @test facewise(astr_sum1to8) == facewise(sum1to8_highlighted)
 # A string whose values cannot hold a face is refused, naming its value type
-let symbolic = Base.AnnotatedString("x", [(1:1, :tag, :sym)])
+let symbolic = Base.AnnotatedString("x", [(1:1, :sym)])
     @test_throws r"annotation values are `Symbol`" highlight!(symbolic)
     @test_throws r"annotation values are `Symbol`" highlight!(SubString(symbolic, 1:1))
 end

@@ -14,16 +14,16 @@ julia> highlight("String(reinterpret(UInt8, [0x293a2061696c756a]))")
 "String(reinterpret(UInt8, [0x293a2061696c756a]))" # Colored in the REPL
 
 julia> Base.annotations(ans)
-9-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value::StyledStrings.Face}}:
- (region = 1:6, label = :face, value = StyledStrings.face"julia_funcall")
- (region = 7:7, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
- (region = 8:18, label = :face, value = StyledStrings.face"julia_funcall")
- (region = 19:19, label = :face, value = StyledStrings.face"julia_rainbow_paren_2")
- (region = 27:27, label = :face, value = StyledStrings.face"julia_rainbow_bracket_1")
- (region = 28:45, label = :face, value = StyledStrings.face"julia_number")
- (region = 46:46, label = :face, value = StyledStrings.face"julia_rainbow_bracket_1")
- (region = 47:47, label = :face, value = StyledStrings.face"julia_rainbow_paren_2")
- (region = 48:48, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
+9-element Vector{@NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}}:
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((1:6, StyledStrings.face"julia_funcall"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((7:7, StyledStrings.face"julia_rainbow_paren_1"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((8:18, StyledStrings.face"julia_funcall"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((19:19, StyledStrings.face"julia_rainbow_paren_2"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((27:27, StyledStrings.face"julia_rainbow_bracket_1"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((28:45, StyledStrings.face"julia_number"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((46:46, StyledStrings.face"julia_rainbow_bracket_1"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((47:47, StyledStrings.face"julia_rainbow_paren_2"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((48:48, StyledStrings.face"julia_rainbow_paren_1"))
 ```
 
 

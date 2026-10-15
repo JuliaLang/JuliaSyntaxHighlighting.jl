@@ -186,30 +186,28 @@ end
 
 """
     _hl_annotations(content::AbstractString, ast::GreenNode)
-      -> Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}}
+      -> Vector{@NamedTuple{region::UnitRange{Int}, value::StyledValue}}
 
 Generate a list of annotations for the given `content` and `ast`.
 
-Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}`,
-where the region indexes into `content` and the value is a `julia_*` face name.
-
-This is a small wrapper around [`_hl_annotations!`](@ref) for convenience.
+Each annotation takes the form of a `@NamedTuple{region::UnitRange{Int}, value::StyledValue}`,
+where the region indexes into `content` and the value is a `julia_*` face.
 """
 function _hl_annotations(content::AbstractString, ast::GreenNode; syntax_errors::Bool = false)
-    highlights = Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}}()
+    highlights = Vector{@NamedTuple{region::UnitRange{Int}, value::StyledValue}}()
     ctx = HighlightContext(content, zero(UInt), ast, ParenDepthCounter())
     _hl_annotations!(highlights, GreenLineage(ast, nothing), ctx; syntax_errors)
     highlights
 end
 
 """
-    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}},
+    _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, value::StyledValue}},
                      lineage::GreenLineage, ctx::HighlightContext)
 
 Populate `highlights` with annotations for the given `lineage` and `ctx`,
 where `lineage` is expected to be consistent with `ctx.offset` and `ctx.lnode`.
 """
-function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, label::Symbol, value::StyledValue}},
+function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int}, value::StyledValue}},
                           lineage::GreenLineage, ctx::HighlightContext; syntax_errors::Bool = false)
     (; node, parent) = lineage
     (; content, offset, lnode, pdepths) = ctx
@@ -297,8 +295,8 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         if nkind in (K"=", K".=", K":=", K"op=", K".op=")
             ifelse(ppkind == K"for", F"keyword", F"assignment")
         else # updating for <op>=
-            push!(highlights, (firstindex(content)+offset:span(node)+offset-1, :face, F"operator"))
-            push!(highlights, (span(node)+offset:span(node)+offset, :face, F"assignment"))
+            push!(highlights, (firstindex(content)+offset:span(node)+offset-1, F"operator"))
+            push!(highlights, (span(node)+offset:span(node)+offset, F"assignment"))
             nothing
         end
     elseif nkind == K";" && pkind == K"parameters" && pnode == lnode
@@ -389,19 +387,19 @@ function _hl_annotations!(highlights::Vector{@NamedTuple{region::UnitRange{Int},
         end
     end
     !isnothing(face) && !isempty(region) && # An error node can be empty
-        push!(highlights, (region, :face, face))
+        push!(highlights, (region, face))
     if nkind == K"Comment"
         for match in eachmatch(
             r"(?:^|[(\[{[:space:]-])`([^[:space:]](?:.*?[^[:space:]])?)`(?:$|[!,\-.:;?\[\][:space:]])",
             regionstr)
             code = first(match.captures)
             push!(highlights, (firstindex(content)+offset+code.offset:firstindex(content)+offset+code.offset+code.ncodeunits-1,
-                               :face, F"code"))
+                               F"code"))
         end
     elseif nkind == K"String"
         for match in eachmatch(r"\\.", regionstr)
             push!(highlights, (firstindex(content)+offset+match.offset-1:firstindex(content)+offset+match.offset+ncodeunits(match.match)-2,
-                               :face, F"backslash_literal"))
+                               F"backslash_literal"))
         end
     end
     numchildren(node) == 0 && return
@@ -438,13 +436,13 @@ julia> JuliaSyntaxHighlighting.highlight("sum(1:8)")
 "sum(1:8)"
 
 julia> JuliaSyntaxHighlighting.highlight("sum(1:8)") |> Base.annotations
-6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value::Union{String, StyledStrings.Face}}}:
- (region = 1:3, label = :face, value = StyledStrings.face"julia_funcall")
- (region = 4:4, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
- (region = 5:5, label = :face, value = StyledStrings.face"julia_number")
- (region = 6:6, label = :face, value = StyledStrings.face"julia_operator")
- (region = 7:7, label = :face, value = StyledStrings.face"julia_number")
- (region = 8:8, label = :face, value = StyledStrings.face"julia_rainbow_paren_1")
+6-element Vector{@NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}}:
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((1:3, StyledStrings.face"julia_funcall"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((4:4, StyledStrings.face"julia_rainbow_paren_1"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((5:5, StyledStrings.face"julia_number"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((6:6, StyledStrings.face"julia_operator"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((7:7, StyledStrings.face"julia_number"))
+ @NamedTuple{region::UnitRange{Int64}, value::StyledStrings.StyledValue}((8:8, StyledStrings.face"julia_rainbow_paren_1"))
 ```
 """
 function highlight end
@@ -487,26 +485,20 @@ julia> JuliaSyntaxHighlighting.highlight!(str)
 "sum(1:8)"
 
 julia> Base.annotations(str)
-6-element Vector{@NamedTuple{region::UnitRange{Int64}, label::Symbol, value}}:
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((1:3, :face, StyledStrings.face"julia_funcall"))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((4:4, :face, StyledStrings.face"julia_rainbow_paren_1"))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((5:5, :face, StyledStrings.face"julia_number"))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((6:6, :face, StyledStrings.face"julia_operator"))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((7:7, :face, StyledStrings.face"julia_number"))
- @NamedTuple{region::UnitRange{Int64}, label::Symbol, value}((8:8, :face, StyledStrings.face"julia_rainbow_paren_1"))
+6-element Vector{@NamedTuple{region::UnitRange{Int64}, value}}:
+ @NamedTuple{region::UnitRange{Int64}, value}((1:3, StyledStrings.face"julia_funcall"))
+ @NamedTuple{region::UnitRange{Int64}, value}((4:4, StyledStrings.face"julia_rainbow_paren_1"))
+ @NamedTuple{region::UnitRange{Int64}, value}((5:5, StyledStrings.face"julia_number"))
+ @NamedTuple{region::UnitRange{Int64}, value}((6:6, StyledStrings.face"julia_operator"))
+ @NamedTuple{region::UnitRange{Int64}, value}((7:7, StyledStrings.face"julia_number"))
+ @NamedTuple{region::UnitRange{Int64}, value}((8:8, StyledStrings.face"julia_rainbow_paren_1"))
 ```
 """
-function highlight!(str::AnnotatedString{<:Any, >:Face}; syntax_errors::Bool = false)
-    for ann in _hl_annotations(str.string, parseall(GreenNode, str.string, ignore_errors=true); syntax_errors)
-        annotate!(str, ann.region, ann.label, ann.value)
-    end
-    str
-end
-
-function highlight!(str::SubString{<:AnnotatedString{S, V}}; syntax_errors::Bool = false) where {S, V >: Face}
+function highlight!(str::Union{AnnotatedString{S, V}, SubString{<:AnnotatedString{S, V}}};
+                    syntax_errors::Bool = false) where {S, V >: Face}
     plainstr = Base.unannotate(str)
     for ann in _hl_annotations(plainstr, parseall(GreenNode, plainstr, ignore_errors=true); syntax_errors)
-        annotate!(str, ann.region, ann.label, ann.value)
+        annotate!(str, ann.region, ann.value)
     end
     str
 end
